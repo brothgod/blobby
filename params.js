@@ -14,8 +14,8 @@
  * limitations under the License.
  * =============================================================================
  */
-import * as posedetection from "@tensorflow-models/pose-detection";
-import { isiOS } from "./util";
+import * as bodySegmentation from "@tensorflow-models/body-segmentation";
+import * as poseDetection from "@tensorflow-models/pose-detection";
 
 export const DEFAULT_LINE_WIDTH = 2;
 export const DEFAULT_RADIUS = 4;
@@ -26,27 +26,35 @@ export const VIDEO_SIZE = {
   "360 X 270": { width: 360, height: 270 },
 };
 export const STATE = {
-  camera: { targetFPS: 60, sizeOption: "640 X 480" },
+  camera: { targetFPS: 60, sizeOption: "640 X 480", cameraSelector: "" },
+  fpsDisplay: { mode: "model" },
   backend: "",
   flags: {},
   modelConfig: {},
+  visualization: {
+    foregroundThreshold: 0.5,
+    maskOpacity: 0.7,
+    maskBlur: 0,
+    pixelCellWidth: 10,
+    backgroundBlur: 3,
+    edgeBlur: 3,
+  },
 };
-export const BLAZEPOSE_CONFIG = {
+export const SELFIE_SEGMENTATION_CONFIG = {
+  type: "general",
+  visualization: "binaryMask",
+};
+export const BODY_PIX_CONFIG = {
+  architecture: "MobileNetV1",
+  outputStride: 16,
+  multiplier: 0.75,
+  quantBytes: 4,
+  visualization: "binaryMask",
+};
+export const BLAZE_POSE_CONFIG = {
   maxPoses: 1,
   type: "full",
-  scoreThreshold: 0.65,
-  render3D: true,
-};
-export const POSENET_CONFIG = {
-  maxPoses: 1,
-  scoreThreshold: 0.5,
-};
-export const MOVENET_CONFIG = {
-  maxPoses: 1,
-  type: "lightning",
-  scoreThreshold: 0.3,
-  customModel: "",
-  enableTracking: false,
+  visualization: "binaryMask",
 };
 /**
  * This map describes tunable flags and theior corresponding types.
@@ -83,22 +91,16 @@ export const BACKEND_FLAGS_MAP = {
     "WEBGL_RENDER_FLOAT32_CAPABLE",
     "WEBGL_FLUSH_THRESHOLD",
   ],
-  ["tfjs-webgpu"]: [],
   ["mediapipe-gpu"]: [],
 };
 
 export const MODEL_BACKEND_MAP = {
-  [posedetection.SupportedModels.PoseNet]: ["tfjs-webgl", "tfjs-webgpu"],
-  [posedetection.SupportedModels.MoveNet]: [
-    "tfjs-webgl",
-    "tfjs-wasm",
-    "tfjs-webgpu",
-  ],
-  [posedetection.SupportedModels.BlazePose]: [
+  [bodySegmentation.SupportedModels.MediaPipeSelfieSegmentation]: [
     "mediapipe-gpu",
     "tfjs-webgl",
-    "tfjs-webgpu",
   ],
+  [bodySegmentation.SupportedModels.BodyPix]: ["tfjs-webgl"],
+  [poseDetection.SupportedModels.BlazePose]: ["mediapipe-gpu", "tfjs-webgl"],
 };
 
 export const TUNABLE_FLAG_NAME_MAP = {

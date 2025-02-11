@@ -15,30 +15,44 @@
  * =============================================================================
  */
 import * as params from "./params";
-import { isMobile } from "./util";
+import { isMobile } from "./shared/util";
+
+async function getDeviceIdForLabel(cameras, cameraLabel) {
+  for (let i = 0; i < cameras.length; i++) {
+    const camera = cameras[i];
+    if (camera.label === cameraLabel) {
+      return camera.deviceId;
+    }
+  }
+
+  return null;
+}
 
 export class Camera {
   constructor() {
     this.video = document.getElementById("video");
+    this.canvas = document.getElementById("output");
+    this.ctx = this.canvas.getContext("2d");
   }
 
   /**
    * Initiate a Camera instance and wait for the camera stream to be ready.
    * @param cameraParam From app `STATE.camera`.
    */
-  static async setup(cameraParam) {
+  static async setupCamera(cameraParam, cameras) {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       throw new Error(
         "Browser API navigator.mediaDevices.getUserMedia not available"
       );
     }
 
-    const { targetFPS, sizeOption } = cameraParam;
+    const { targetFPS, sizeOption, cameraSelector } = cameraParam;
     const $size = params.VIDEO_SIZE[sizeOption];
+    const deviceId = await getDeviceIdForLabel(cameras, cameraSelector);
     const videoConfig = {
       audio: false,
       video: {
-        facingMode: "user",
+        deviceId,
         // Only setting the video to a specified size for large screen, on
         // mobile devices accept the default size.
         width: isMobile() ? params.VIDEO_SIZE["360 X 270"].width : $size.width,
@@ -70,9 +84,39 @@ export class Camera {
     camera.video.width = videoWidth;
     camera.video.height = videoHeight;
 
+    camera.canvas.width = videoWidth;
+    camera.canvas.height = videoHeight;
     const canvasContainer = document.querySelector(".canvas-wrapper");
     canvasContainer.style = `width: ${videoWidth}px; height: ${videoHeight}px`;
 
+    // Because the image from camera is mirrored, need to flip horizontally.
+    camera.ctx.translate(camera.video.videoWidth, 0);
+    camera.ctx.scale(-1, 1);
+
     return camera;
+  }
+
+  drawToCanvas(canvas) {
+    this.ctx.drawImage(
+      canvas,
+      0,
+      0,
+      this.video.videoWidth,
+      this.video.videoHeight
+    );
+  }
+
+  drawFromVideo(ctx) {
+    ctx.drawImage(
+      this.video,
+      0,
+      0,
+      this.video.videoWidth,
+      this.video.videoHeight
+    );
+  }
+
+  clearCtx() {
+    this.ctx.clearRect(0, 0, this.video.videoWidth, this.video.videoHeight);
   }
 }
