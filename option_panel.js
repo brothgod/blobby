@@ -14,10 +14,11 @@
  * limitations under the License.
  * =============================================================================
  */
-import * as posedetection from "@tensorflow-models/pose-detection";
+import * as bodySegmentation from "@tensorflow-models/body-segmentation";
+import * as poseDetection from "@tensorflow-models/pose-detection";
 import * as tf from "@tensorflow/tfjs-core";
 
-import * as params from "./params";
+import * as params from "./shared/params";
 
 /**
  * Records each flag's default value under the runtime environment and is a
@@ -25,13 +26,19 @@ import * as params from "./params";
  */
 let TUNABLE_FLAG_DEFAULT_VALUE_MAP;
 
-let enableTrackingController;
-let scoreThresholdController;
-
 const stringValueMap = {};
-let backendFolder;
 
-export async function setupDatGui(urlParams) {
+function toCameraOptions(cameras) {
+  const result = { default: null };
+
+  cameras.forEach((camera) => {
+    result[camera.label] = camera.label;
+  });
+
+  return result;
+}
+
+export async function setupDatGui(urlParams, cameras) {
   const gui = new dat.GUI({ width: 300 });
   gui.domElement.id = "gui";
 
@@ -39,7 +46,7 @@ export async function setupDatGui(urlParams) {
   const cameraFolder = gui.addFolder("Camera");
   const fpsController = cameraFolder.add(params.STATE.camera, "targetFPS");
   fpsController.onFinishChange((_) => {
-    params.STATE.isTargetFPSChanged = true;
+    params.STATE.isCameraChanged = true;
   });
   const sizeController = cameraFolder.add(
     params.STATE.camera,
@@ -47,31 +54,42 @@ export async function setupDatGui(urlParams) {
     Object.keys(params.VIDEO_SIZE)
   );
   sizeController.onChange((_) => {
-    params.STATE.isSizeOptionChanged = true;
+    params.STATE.isCameraChanged = true;
+  });
+  const cameraOptions = toCameraOptions(cameras);
+  params.STATE.camera.cameraSelector = cameraOptions["default"];
+  const cameraSelectorController = cameraFolder.add(
+    params.STATE.camera,
+    "cameraSelector",
+    cameraOptions
+  );
+  cameraSelectorController.onChange((_) => {
+    params.STATE.isCameraChanged = true;
   });
   cameraFolder.open();
+
+  // The fps display folder contains options for video settings.
+  const fpsDisplayFolder = gui.addFolder("FPS Display");
+  fpsDisplayFolder.add(params.STATE.fpsDisplay, "mode", ["model", "e2e"]);
+  fpsDisplayFolder.open();
 
   // The model folder contains options for model selection.
   const modelFolder = gui.addFolder("Model");
 
   const model = urlParams.get("model");
   let type = urlParams.get("type");
-  const backendFromURL = urlParams.get("backend");
 
   switch (model) {
-    // case "posenet":
-    //   params.STATE.model = posedetection.SupportedModels.PoseNet;
-    //   break;
-    // case "movenet":
-    //   params.STATE.model = posedetection.SupportedModels.MoveNet;
-    //   if (type !== "lightning" && type !== "thunder" && type !== "multipose") {
-    //     // Nulify invalid value.
-    //     type = null;
-    //   }
-    //   break;
     case "blazepose":
-      params.STATE.model = posedetection.SupportedModels.BlazePose;
-      if (type !== "full" && type !== "lite" && type !== "heavy") {
+      params.STATE.model = poseDetection.SupportedModels.BlazePose;
+      break;
+    case "bodypix":
+      params.STATE.model = bodySegmentation.SupportedModels.BodyPix;
+      break;
+    case "selfie_segmentation":
+      params.STATE.model =
+        bodySegmentation.SupportedModels.MediaPipeSelfieSegmentation;
+      if (type !== "general" && type !== "landscape") {
         // Nulify invalid value.
         type = null;
       }
@@ -81,36 +99,49 @@ export async function setupDatGui(urlParams) {
       break;
   }
 
-  const modelController = modelFolder.add(
-    params.STATE,
-    "model",
-    posedetection.SupportedModels.BlazePose
-  );
+  const modelNames = Object.values(bodySegmentation.SupportedModels);
+  modelNames.push(poseDetection.SupportedModels.BlazePose);
+  const modelController = modelFolder.add(params.STATE, "model", modelNames);
 
   modelController.onChange((_) => {
     params.STATE.isModelChanged = true;
-    showModelConfigs(modelFolder);
+    const visSelector = showModelConfigs(modelFolder);
     showBackendConfigs(backendFolder);
+    visSelector.onChange(async (mode) => {
+      params.STATE.isVisChanged = true;
+      showVisualizationSettings(visFolder, mode);
+    });
+    showVisualizationSettings(
+      visFolder,
+      params.STATE.modelConfig.visualization
+    );
   });
 
-  showModelConfigs(modelFolder, type);
+  const visSelector = showModelConfigs(modelFolder, type);
 
   modelFolder.open();
 
-  backendFolder = gui.addFolder("Backend");
-  params.STATE.backend = backendFromURL;
+  const backendFolder = gui.addFolder("Backend");
 
   showBackendConfigs(backendFolder);
 
   backendFolder.open();
 
+  const visFolder = gui.addFolder("Visualization");
+
+  showVisualizationSettings(visFolder, "binaryMask");
+
+  visFolder.open();
+
+  visSelector.onChange(async (mode) => {
+    params.STATE.isVisChanged = true;
+    showVisualizationSettings(visFolder, mode);
+  });
+
   return gui;
 }
 
-export async function showBackendConfigs(folderController) {
-  if (folderController == null) {
-    folderController = backendFolder;
-  }
+async function showBackendConfigs(folderController) {
   // Clean up backend configs for the previous model.
   const fixedSelectionCount = 0;
   while (folderController.__controllers.length > fixedSelectionCount) {
@@ -119,10 +150,8 @@ export async function showBackendConfigs(folderController) {
     );
   }
   const backends = params.MODEL_BACKEND_MAP[params.STATE.model];
-  if (params.STATE.backend == null) {
-    // The first element of the array is the default backend for the model.
-    params.STATE.backend = backends[0];
-  }
+  // The first element of the array is the default backend for the model.
+  params.STATE.backend = backends[0];
   const backendController = folderController.add(
     params.STATE,
     "backend",
@@ -148,94 +177,154 @@ function showModelConfigs(folderController, type) {
   }
 
   switch (params.STATE.model) {
-    // case posedetection.SupportedModels.PoseNet:
-    //   addPoseNetControllers(folderController);
-    //   break;
-    // case posedetection.SupportedModels.MoveNet:
-    //   addMoveNetControllers(folderController, type);
-    //   break;
-    case posedetection.SupportedModels.BlazePose:
-      addBlazePoseControllers(folderController, type);
-      break;
+    case poseDetection.SupportedModels.BlazePose:
+      return addBlazePoseControllers(folderController, type);
+    case bodySegmentation.SupportedModels.BodyPix:
+      return addBodyPixControllers(folderController);
+    case bodySegmentation.SupportedModels.MediaPipeSelfieSegmentation:
+      return addSelfieSegmentationControllers(folderController, type);
     default:
       alert(`Model ${params.STATE.model} is not supported.`);
   }
 }
 
-// The PoseNet model config folder contains options for PoseNet config
+function showVisualizationSettings(folderController, vis) {
+  // Clean up visualization configs for the previous mode.
+  while (folderController.__controllers.length > 0) {
+    folderController.remove(
+      folderController.__controllers[folderController.__controllers.length - 1]
+    );
+  }
+
+  folderController.add(
+    params.STATE.visualization,
+    "foregroundThreshold",
+    0.0,
+    1.0
+  );
+
+  if (vis === "binaryMask") {
+    folderController.add(params.STATE.visualization, "maskOpacity", 0.0, 1.0);
+    folderController
+      .add(params.STATE.visualization, "maskBlur")
+      .min(1)
+      .max(20)
+      .step(1);
+  } else if (vis === "coloredMask") {
+    folderController.add(params.STATE.visualization, "maskOpacity", 0.0, 1.0);
+    folderController
+      .add(params.STATE.visualization, "maskBlur")
+      .min(1)
+      .max(20)
+      .step(1);
+  } else if (vis === "pixelatedMask") {
+    folderController.add(params.STATE.visualization, "maskOpacity", 0.0, 1.0);
+    folderController
+      .add(params.STATE.visualization, "maskBlur")
+      .min(0)
+      .max(20)
+      .step(1);
+    folderController
+      .add(params.STATE.visualization, "pixelCellWidth")
+      .min(1)
+      .max(50)
+      .step(1);
+  } else if (vis === "bokehEffect") {
+    folderController
+      .add(params.STATE.visualization, "backgroundBlur")
+      .min(1)
+      .max(20)
+      .step(1);
+    folderController
+      .add(params.STATE.visualization, "edgeBlur")
+      .min(0)
+      .max(20)
+      .step(1);
+  } else if (vis === "blurFace") {
+    folderController
+      .add(params.STATE.visualization, "backgroundBlur")
+      .min(1)
+      .max(20)
+      .step(1);
+    folderController
+      .add(params.STATE.visualization, "edgeBlur")
+      .min(0)
+      .max(20)
+      .step(1);
+  }
+}
+
+// The MediaPipeHands model config folder contains options for MediaPipeHands
+// config settings.
+function addSelfieSegmentationControllers(modelConfigFolder, type) {
+  params.STATE.modelConfig = { ...params.SELFIE_SEGMENTATION_CONFIG };
+  params.STATE.modelConfig.type = type != null ? type : "general";
+
+  const typeController = modelConfigFolder.add(
+    params.STATE.modelConfig,
+    "type",
+    ["general", "landscape"]
+  );
+  typeController.onChange((_) => {
+    // Set isModelChanged to true, so that we don't render any result during
+    // changing models.
+    params.STATE.isModelChanged = true;
+  });
+
+  const visSelector = modelConfigFolder.add(
+    params.STATE.modelConfig,
+    "visualization",
+    ["binaryMask", "bokehEffect"]
+  );
+  return visSelector;
+}
+
+// The BodyPix model config folder contains options for BodyPix config
 // settings.
-// function addPoseNetControllers(modelConfigFolder) {
-//   params.STATE.modelConfig = { ...params.POSENET_CONFIG };
+function addBodyPixControllers(modelConfigFolder) {
+  params.STATE.modelConfig = { ...params.BODY_PIX_CONFIG };
 
-//   modelConfigFolder.add(params.STATE.modelConfig, "maxPoses", [1, 2, 3, 4, 5]);
-//   modelConfigFolder.add(params.STATE.modelConfig, "scoreThreshold", 0, 1);
-// }
+  const controllers = [];
+  controllers.push(
+    modelConfigFolder.add(params.STATE.modelConfig, "architecture", [
+      "ResNet50",
+      "MobileNetV1",
+    ])
+  );
+  controllers.push(
+    modelConfigFolder.add(params.STATE.modelConfig, "outputStride", [8, 16])
+  );
+  controllers.push(
+    modelConfigFolder.add(
+      params.STATE.modelConfig,
+      "multiplier",
+      [0.5, 0.75, 1.0]
+    )
+  );
+  controllers.push(
+    modelConfigFolder.add(params.STATE.modelConfig, "quantBytes", [1, 2, 4])
+  );
 
-// The MoveNet model config folder contains options for MoveNet config
-// settings.
-// function addMoveNetControllers(modelConfigFolder, type) {
-//   params.STATE.modelConfig = { ...params.MOVENET_CONFIG };
-//   params.STATE.modelConfig.type = type != null ? type : "lightning";
+  for (const controller of controllers) {
+    controller.onChange((_) => {
+      // Set isModelChanged to true, so that we don't render any result during
+      // changing models.
+      params.STATE.isModelChanged = true;
+    });
+  }
 
-//   // Set multipose defaults on initial page load.
-//   if (params.STATE.modelConfig.type === "multipose") {
-//     params.STATE.modelConfig.enableTracking = true;
-//     params.STATE.modelConfig.scoreThreshold = 0.2;
-//   }
-
-//   const typeController = modelConfigFolder.add(
-//     params.STATE.modelConfig,
-//     "type",
-//     ["lightning", "thunder", "multipose"]
-//   );
-//   typeController.onChange((type) => {
-//     // Set isModelChanged to true, so that we don't render any result during
-//     // changing models.
-//     params.STATE.isModelChanged = true;
-//     if (type === "multipose") {
-//       // Defaults to enable tracking for multi pose.
-//       if (enableTrackingController) {
-//         enableTrackingController.setValue(true);
-//       }
-//       // Defaults to a lower scoreThreshold for multi pose.
-//       if (scoreThresholdController) {
-//         scoreThresholdController.setValue(0.2);
-//       }
-//     } else {
-//       enableTrackingController.setValue(false);
-//     }
-//   });
-
-//   const customModelController = modelConfigFolder.add(
-//     params.STATE.modelConfig,
-//     "customModel"
-//   );
-//   customModelController.onFinishChange((_) => {
-//     params.STATE.isModelChanged = true;
-//   });
-
-//   scoreThresholdController = modelConfigFolder.add(
-//     params.STATE.modelConfig,
-//     "scoreThreshold",
-//     0,
-//     1
-//   );
-
-//   enableTrackingController = modelConfigFolder.add(
-//     params.STATE.modelConfig,
-//     "enableTracking"
-//   );
-//   enableTrackingController.onChange((_) => {
-//     // Set isModelChanged to true, so that we don't render any result during
-//     // changing models.
-//     params.STATE.isModelChanged = true;
-//   });
-// }
+  const visSelector = modelConfigFolder.add(
+    params.STATE.modelConfig,
+    "visualization",
+    ["binaryMask", "coloredMask", "pixelatedMask", "bokehEffect", "blurFace"]
+  );
+  return visSelector;
+}
 
 // The BlazePose model config folder contains options for BlazePose config
 // settings.
 function addBlazePoseControllers(modelConfigFolder, type) {
-  params.STATE.modelConfig = { ...params.BLAZEPOSE_CONFIG };
+  params.STATE.modelConfig = { ...params.BLAZE_POSE_CONFIG };
   params.STATE.modelConfig.type = type != null ? type : "full";
 
   const typeController = modelConfigFolder.add(
@@ -249,17 +338,12 @@ function addBlazePoseControllers(modelConfigFolder, type) {
     params.STATE.isModelChanged = true;
   });
 
-  modelConfigFolder.add(params.STATE.modelConfig, "scoreThreshold", 0, 1);
-
-  const render3DController = modelConfigFolder.add(
+  const visSelector = modelConfigFolder.add(
     params.STATE.modelConfig,
-    "render3D"
+    "visualization",
+    ["binaryMask", "bokehEffect"]
   );
-  render3DController.onChange((render3D) => {
-    document.querySelector("#scatter-gl-container").style.display = render3D
-      ? "inline-block"
-      : "none";
-  });
+  return visSelector;
 }
 
 /**
