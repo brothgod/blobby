@@ -204,7 +204,7 @@ function showVisualizationSettings(folderController, vis) {
 // settings.
 function addBlazePoseControllers(modelConfigFolder, type) {
   params.STATE.modelConfig = { ...params.BLAZE_POSE_CONFIG };
-  params.STATE.modelConfig.type = type != null ? type : "full";
+  params.STATE.modelConfig.type = type != null ? type : "heavy";
 
   const typeController = modelConfigFolder.add(
     params.STATE.modelConfig,

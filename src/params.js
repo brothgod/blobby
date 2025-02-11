@@ -41,7 +41,7 @@ export const STATE = {
 };
 export const BLAZE_POSE_CONFIG = {
   maxPoses: 1,
-  type: "full",
+  type: "heavy",
   visualization: "binaryMask",
 };
 /**

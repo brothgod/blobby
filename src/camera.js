@@ -31,7 +31,7 @@ async function getDeviceIdForLabel(cameras, cameraLabel) {
 export class Camera {
   constructor() {
     this.video = document.getElementById("video");
-    this.canvas = document.getElementById("output");
+    this.canvas = document.getElementById("camera-output");
     this.ctx = this.canvas.getContext("2d");
   }
 

@@ -48,8 +48,9 @@ let E2ETime = { ...resetTime };
 let rafId;
 const MODEL_LABEL = "(Model FPS)      ";
 const E2E_LABEL = "(End2End FPS)";
-const canvas = document.createElement("canvas");
-const ctx = canvas.getContext("2d");
+const blankCanvas = document.createElement("canvas");
+const maskCanvas = document.getElementById("mask-output");
+const ctx = blankCanvas.getContext("2d");
 
 async function createSegmenter() {
   switch (STATE.model) {
@@ -78,8 +79,8 @@ async function createSegmenter() {
 async function checkGuiUpdate() {
   if (STATE.isCameraChanged) {
     camera = await Camera.setupCamera(STATE.camera, cameras);
-    canvas.width = camera.canvas.width;
-    canvas.height = camera.canvas.height;
+    blankCanvas.width = camera.canvas.width;
+    blankCanvas.height = camera.canvas.height;
     STATE.isCameraChanged = false;
   }
 
@@ -251,15 +252,16 @@ async function renderResult() {
         options.foregroundThreshold
       );
       await bodySegmentation.drawMask(
-        canvas,
-        camera.video,
+        maskCanvas,
+        blankCanvas,
         data,
         options.maskOpacity,
-        options.maskBlur
+        options.maskBlur,
+        true
       );
     } else if (vis === "bokehEffect") {
       await bodySegmentation.drawBokehEffect(
-        canvas,
+        maskCanvas,
         camera.video,
         segmentation,
         options.foregroundThreshold,
@@ -270,7 +272,7 @@ async function renderResult() {
       camera.drawFromVideo(ctx);
     }
   }
-  camera.drawToCanvas(canvas);
+  camera.drawToCanvas(camera.video);
 
   if (fpsDisplayMode === "e2e") {
     endEstimateSegmentationStats(E2ETime);
@@ -310,8 +312,8 @@ async function app() {
   stats = setupStats(MODEL_LABEL);
 
   camera = await Camera.setupCamera(STATE.camera, cameras);
-  canvas.width = camera.canvas.width;
-  canvas.height = camera.canvas.height;
+  blankCanvas.width = camera.canvas.width;
+  blankCanvas.height = camera.canvas.height;
 
   await setBackendAndEnvFlags(STATE.flags, STATE.backend);
 
