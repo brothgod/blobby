@@ -247,8 +247,8 @@ async function renderResult() {
       const data = await bodySegmentation.toBinaryMask(
         segmentation,
         { r: 0, g: 0, b: 0, a: 0 },
-        { r: 0, g: 0, b: 0, a: 255 },
-        false,
+        { r: 0, g: 0, b: 0, a: 0 },
+        true,
         options.foregroundThreshold
       );
       await bodySegmentation.drawMask(
