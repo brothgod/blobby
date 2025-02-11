@@ -15,7 +15,7 @@
  * =============================================================================
  */
 import * as params from "./params";
-import { isMobile } from "./shared/util";
+import { isMobile } from "./util";
 
 async function getDeviceIdForLabel(cameras, cameraLabel) {
   for (let i = 0; i < cameras.length; i++) {

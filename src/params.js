@@ -14,7 +14,6 @@
  * limitations under the License.
  * =============================================================================
  */
-import * as bodySegmentation from "@tensorflow-models/body-segmentation";
 import * as poseDetection from "@tensorflow-models/pose-detection";
 
 export const DEFAULT_LINE_WIDTH = 2;
@@ -39,17 +38,6 @@ export const STATE = {
     backgroundBlur: 3,
     edgeBlur: 3,
   },
-};
-export const SELFIE_SEGMENTATION_CONFIG = {
-  type: "general",
-  visualization: "binaryMask",
-};
-export const BODY_PIX_CONFIG = {
-  architecture: "MobileNetV1",
-  outputStride: 16,
-  multiplier: 0.75,
-  quantBytes: 4,
-  visualization: "binaryMask",
 };
 export const BLAZE_POSE_CONFIG = {
   maxPoses: 1,
@@ -95,11 +83,6 @@ export const BACKEND_FLAGS_MAP = {
 };
 
 export const MODEL_BACKEND_MAP = {
-  [bodySegmentation.SupportedModels.MediaPipeSelfieSegmentation]: [
-    "mediapipe-gpu",
-    "tfjs-webgl",
-  ],
-  [bodySegmentation.SupportedModels.BodyPix]: ["tfjs-webgl"],
   [poseDetection.SupportedModels.BlazePose]: ["mediapipe-gpu", "tfjs-webgl"],
 };
 

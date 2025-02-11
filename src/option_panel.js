@@ -18,7 +18,7 @@ import * as bodySegmentation from "@tensorflow-models/body-segmentation";
 import * as poseDetection from "@tensorflow-models/pose-detection";
 import * as tf from "@tensorflow/tfjs-core";
 
-import * as params from "./shared/params";
+import * as params from "./params";
 
 /**
  * Records each flag's default value under the runtime environment and is a
@@ -76,31 +76,11 @@ export async function setupDatGui(urlParams, cameras) {
   // The model folder contains options for model selection.
   const modelFolder = gui.addFolder("Model");
 
-  const model = urlParams.get("model");
   let type = urlParams.get("type");
 
-  switch (model) {
-    case "blazepose":
-      params.STATE.model = poseDetection.SupportedModels.BlazePose;
-      break;
-    case "bodypix":
-      params.STATE.model = bodySegmentation.SupportedModels.BodyPix;
-      break;
-    case "selfie_segmentation":
-      params.STATE.model =
-        bodySegmentation.SupportedModels.MediaPipeSelfieSegmentation;
-      if (type !== "general" && type !== "landscape") {
-        // Nulify invalid value.
-        type = null;
-      }
-      break;
-    default:
-      alert(`${urlParams.get("model")}`);
-      break;
-  }
+  params.STATE.model = poseDetection.SupportedModels.BlazePose;
 
-  const modelNames = Object.values(bodySegmentation.SupportedModels);
-  modelNames.push(poseDetection.SupportedModels.BlazePose);
+  const modelNames = [poseDetection.SupportedModels.BlazePose];
   const modelController = modelFolder.add(params.STATE, "model", modelNames);
 
   modelController.onChange((_) => {
@@ -179,10 +159,6 @@ function showModelConfigs(folderController, type) {
   switch (params.STATE.model) {
     case poseDetection.SupportedModels.BlazePose:
       return addBlazePoseControllers(folderController, type);
-    case bodySegmentation.SupportedModels.BodyPix:
-      return addBodyPixControllers(folderController);
-    case bodySegmentation.SupportedModels.MediaPipeSelfieSegmentation:
-      return addSelfieSegmentationControllers(folderController, type);
     default:
       alert(`Model ${params.STATE.model} is not supported.`);
   }
@@ -210,25 +186,6 @@ function showVisualizationSettings(folderController, vis) {
       .min(1)
       .max(20)
       .step(1);
-  } else if (vis === "coloredMask") {
-    folderController.add(params.STATE.visualization, "maskOpacity", 0.0, 1.0);
-    folderController
-      .add(params.STATE.visualization, "maskBlur")
-      .min(1)
-      .max(20)
-      .step(1);
-  } else if (vis === "pixelatedMask") {
-    folderController.add(params.STATE.visualization, "maskOpacity", 0.0, 1.0);
-    folderController
-      .add(params.STATE.visualization, "maskBlur")
-      .min(0)
-      .max(20)
-      .step(1);
-    folderController
-      .add(params.STATE.visualization, "pixelCellWidth")
-      .min(1)
-      .max(50)
-      .step(1);
   } else if (vis === "bokehEffect") {
     folderController
       .add(params.STATE.visualization, "backgroundBlur")
@@ -240,85 +197,7 @@ function showVisualizationSettings(folderController, vis) {
       .min(0)
       .max(20)
       .step(1);
-  } else if (vis === "blurFace") {
-    folderController
-      .add(params.STATE.visualization, "backgroundBlur")
-      .min(1)
-      .max(20)
-      .step(1);
-    folderController
-      .add(params.STATE.visualization, "edgeBlur")
-      .min(0)
-      .max(20)
-      .step(1);
   }
-}
-
-// The MediaPipeHands model config folder contains options for MediaPipeHands
-// config settings.
-function addSelfieSegmentationControllers(modelConfigFolder, type) {
-  params.STATE.modelConfig = { ...params.SELFIE_SEGMENTATION_CONFIG };
-  params.STATE.modelConfig.type = type != null ? type : "general";
-
-  const typeController = modelConfigFolder.add(
-    params.STATE.modelConfig,
-    "type",
-    ["general", "landscape"]
-  );
-  typeController.onChange((_) => {
-    // Set isModelChanged to true, so that we don't render any result during
-    // changing models.
-    params.STATE.isModelChanged = true;
-  });
-
-  const visSelector = modelConfigFolder.add(
-    params.STATE.modelConfig,
-    "visualization",
-    ["binaryMask", "bokehEffect"]
-  );
-  return visSelector;
-}
-
-// The BodyPix model config folder contains options for BodyPix config
-// settings.
-function addBodyPixControllers(modelConfigFolder) {
-  params.STATE.modelConfig = { ...params.BODY_PIX_CONFIG };
-
-  const controllers = [];
-  controllers.push(
-    modelConfigFolder.add(params.STATE.modelConfig, "architecture", [
-      "ResNet50",
-      "MobileNetV1",
-    ])
-  );
-  controllers.push(
-    modelConfigFolder.add(params.STATE.modelConfig, "outputStride", [8, 16])
-  );
-  controllers.push(
-    modelConfigFolder.add(
-      params.STATE.modelConfig,
-      "multiplier",
-      [0.5, 0.75, 1.0]
-    )
-  );
-  controllers.push(
-    modelConfigFolder.add(params.STATE.modelConfig, "quantBytes", [1, 2, 4])
-  );
-
-  for (const controller of controllers) {
-    controller.onChange((_) => {
-      // Set isModelChanged to true, so that we don't render any result during
-      // changing models.
-      params.STATE.isModelChanged = true;
-    });
-  }
-
-  const visSelector = modelConfigFolder.add(
-    params.STATE.modelConfig,
-    "visualization",
-    ["binaryMask", "coloredMask", "pixelatedMask", "bokehEffect", "blurFace"]
-  );
-  return visSelector;
 }
 
 // The BlazePose model config folder contains options for BlazePose config
