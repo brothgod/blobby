@@ -1,16 +1,18 @@
 import simplify from "simplify-js";
+import convexHull from "convex-hull";
 
 interface Point {
   x: number;
   y: number;
 }
 
-export function blobifyMask(imageData: ImageData) {
+export function blobifyMask(imageData: ImageData): ImageData {
   const binaryMask: number[][] = imageDataToBinary(imageData);
   const contour: Point[] = findCoutour(binaryMask);
-  const simplifiedContour = simplifyContour(contour);
+  // const simplifiedContour = simplifyContour(contour);
+  const hull = contourToHull(contour);
   const contourImage: ImageData = contourToImageData(
-    simplifiedContour,
+    hull,
     imageData.width,
     imageData.height
   );
@@ -18,7 +20,7 @@ export function blobifyMask(imageData: ImageData) {
   return contourImage;
 }
 
-function imageDataToBinary(imageData: ImageData) {
+function imageDataToBinary(imageData: ImageData): number[][] {
   const { data, width, height } = imageData;
   const binaryMask = new Array(width)
     .fill(0)
@@ -46,7 +48,7 @@ function imageDataToBinary(imageData: ImageData) {
   return binaryMask;
 }
 
-function findCoutour(binaryMask: number[][]) {
+function findCoutour(binaryMask: number[][]): Point[] {
   const rows = binaryMask.length;
   const cols = binaryMask[0].length;
 
@@ -108,18 +110,26 @@ function findCoutour(binaryMask: number[][]) {
     }
 
     if (!foundNext) break; // If no valid next move, stop tracing
+    //TODO: detect multiple contours / make sure multiple contours are being tracked
   } while (current[0] !== start[0] || current[1] !== start[1]);
 
   return contour;
   // return contour.map(([r, c]) => [c, r]); // Swap (row, col) to (x, y) TODO:FIX ME
 }
 
-function simplifyContour(contour: Point[]) {
+function simplifyContour(contour: Point[]): Point[] {
   const simplifiedContour = simplify(contour, 5);
   return simplifiedContour;
 }
 
-function contourToHull(contour: Point[]) {}
+function contourToHull(contour: Point[]): Point[] {
+  const contourArray = pointsToArrays(contour);
+  console.log(contourArray);
+  const hull = convexHull(contourArray); //Array of EDGES
+  const hullPoints = hull.map(([p1, p2]) => contour[p1]);
+  console.log(hull);
+  return hullPoints;
+}
 
 function contourToImageData(
   contour: Point[],
@@ -187,4 +197,12 @@ function contourToImageData(
   }
 
   return imageData;
+}
+
+function pointsToArrays(points: Point[]): number[][] {
+  return points.map(({ x, y }) => [x, y]);
+}
+
+function arraysToPoints(arr: number[][]): Point[] {
+  return arr.map(([x, y]) => ({ x, y }));
 }

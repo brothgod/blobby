@@ -262,6 +262,7 @@ async function renderResult() {
         true
       );
       await bodySegmentation.drawMask(
+        //TODO: fix image flickering
         contourCanvas,
         blankCanvas,
         blobifyMask(data),
