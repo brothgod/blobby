@@ -11,13 +11,14 @@ export function blobifyMask(imageData: ImageData): ImageData {
   const contour: Point[] = findCoutour(binaryMask);
   // const simplifiedContour = simplifyContour(contour);
   const hull = contourToHull(contour);
-  const contourImage: ImageData = contourToImageData(
+  const returnImage: ImageData = generateImageData(
+    contour,
     hull,
     imageData.width,
     imageData.height
   );
 
-  return contourImage;
+  return returnImage;
 }
 
 function imageDataToBinary(imageData: ImageData): number[][] {
@@ -114,7 +115,6 @@ function findCoutour(binaryMask: number[][]): Point[] {
   } while (current[0] !== start[0] || current[1] !== start[1]);
 
   return contour;
-  // return contour.map(([r, c]) => [c, r]); // Swap (row, col) to (x, y) TODO:FIX ME
 }
 
 function simplifyContour(contour: Point[]): Point[] {
@@ -127,12 +127,13 @@ function contourToHull(contour: Point[]): Point[] {
   console.log(contourArray);
   const hull = convexHull(contourArray); //Array of EDGES
   const hullPoints = hull.map(([p1, p2]) => contour[p1]);
-  console.log(hull);
+  console.log(hullPoints);
   return hullPoints;
 }
 
-function contourToImageData(
+function generateImageData(
   contour: Point[],
+  hull: Point[],
   width: number,
   height: number
 ): ImageData {
@@ -149,18 +150,18 @@ function contourToImageData(
   }
 
   // Function to plot a pixel in ImageData
-  function setPixel(x: number, y: number) {
+  function setPixel(x: number, y: number, rgba: number[]) {
     if (x >= 0 && x < width && y >= 0 && y < height) {
       const index = (y * width + x) * 4;
-      data[index] = 0; // Red
-      data[index + 1] = 0; // Green
-      data[index + 2] = 255; // Blue
-      data[index + 3] = 255; // Alpha
+      data[index] = rgba[0]; // Red
+      data[index + 1] = rgba[1]; // Green
+      data[index + 2] = rgba[2]; // Blue
+      data[index + 3] = rgba[3]; // Alpha
     }
   }
 
   // Bresenham’s Line Algorithm to draw a line between two points
-  function drawLine(p0: Point, p1: Point) {
+  function drawLine(p0: Point, p1: Point, rgba: number[]) {
     let x0 = p0.x,
       y0 = p0.y,
       x1 = p1.x,
@@ -172,7 +173,7 @@ function contourToImageData(
     let err = dx - dy;
 
     while (true) {
-      setPixel(x0, y0);
+      setPixel(x0, y0, rgba);
       if (x0 === x1 && y0 === y1) break;
       let e2 = 2 * err;
       if (e2 > -dy) {
@@ -186,14 +187,22 @@ function contourToImageData(
     }
   }
 
-  // Draw lines between consecutive points
+  const contourColor: number[] = [0, 100, 0, 100];
   for (let i = 0; i < contour.length - 1; i++) {
-    drawLine(contour[i], contour[i + 1]);
+    drawLine(contour[i], contour[i + 1], contourColor);
   }
 
-  // Close the contour by connecting the last point to the first
   if (contour.length > 1) {
-    drawLine(contour[contour.length - 1], contour[0]);
+    drawLine(contour[contour.length - 1], contour[0], contourColor);
+  }
+
+  const hullColor: number[] = [0, 0, 100, 100];
+  for (let i = 0; i < hull.length - 1; i++) {
+    drawLine(hull[i], hull[i + 1], hullColor);
+  }
+
+  if (hull.length > 1) {
+    drawLine(hull[hull.length - 1], hull[0], hullColor);
   }
 
   return imageData;

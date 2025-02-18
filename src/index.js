@@ -250,7 +250,7 @@ async function renderResult() {
         segmentation,
         { r: 0, g: 0, b: 0, a: 0 },
         { r: 0, g: 0, b: 0, a: 0 },
-        true,
+        true, // Draws the contour in [0, 255, 255]
         options.foregroundThreshold
       );
       await bodySegmentation.drawMask(
