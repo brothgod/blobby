@@ -31,8 +31,8 @@ export const STATE = {
   flags: {},
   modelConfig: {},
   visualization: {
-    foregroundThreshold: 0.5,
-    maskOpacity: 0.7,
+    foregroundThreshold: 1,
+    maskOpacity: 1,
     maskBlur: 0,
     pixelCellWidth: 10,
     backgroundBlur: 3,

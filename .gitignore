@@ -9,6 +9,7 @@ pids
 
 # Dependency directories
 node_modules/
+.parcel-cache/
 
 # Optional npm cache directory
 .npm

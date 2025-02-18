@@ -33,6 +33,7 @@ import { setupDatGui } from "./option_panel";
 import { STATE } from "./params";
 import { setupStats } from "./stats_panel";
 import { setBackendAndEnvFlags } from "./util";
+import { blobifyMask } from "./blobify.ts";
 
 let segmenter, camera, stats;
 let cameras;
@@ -50,6 +51,7 @@ const MODEL_LABEL = "(Model FPS)      ";
 const E2E_LABEL = "(End2End FPS)";
 const blankCanvas = document.createElement("canvas");
 const maskCanvas = document.getElementById("mask-output");
+const contourCanvas = document.getElementById("contour-output");
 const ctx = blankCanvas.getContext("2d");
 
 async function createSegmenter() {
@@ -255,6 +257,14 @@ async function renderResult() {
         maskCanvas,
         blankCanvas,
         data,
+        options.maskOpacity,
+        options.maskBlur,
+        true
+      );
+      await bodySegmentation.drawMask(
+        contourCanvas,
+        blankCanvas,
+        blobifyMask(data),
         options.maskOpacity,
         options.maskBlur,
         true
