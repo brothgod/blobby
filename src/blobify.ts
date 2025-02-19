@@ -23,7 +23,7 @@ export function blobifyMask(imageData: ImageData): ImageData {
 
 function imageDataToBinary(imageData: ImageData): number[][] {
   const { data, width, height } = imageData;
-  const binaryMask = new Array(width)
+  const binaryMask: number[][] = new Array(width)
     .fill(0)
     .map(() => new Array(height).fill(0));
 

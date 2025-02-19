@@ -249,7 +249,7 @@ async function renderResult() {
       const data = await bodySegmentation.toBinaryMask(
         segmentation,
         { r: 0, g: 0, b: 0, a: 0 },
-        { r: 0, g: 0, b: 0, a: 0 },
+        { r: 0, g: 0, b: 0, a: 255 },
         true, // Draws the contour in [0, 255, 255]
         options.foregroundThreshold
       );
