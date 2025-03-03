@@ -43,7 +43,7 @@ def process_image(result):
         
 
 options = PoseLandmarkerOptions(
-    base_options=BaseOptions(model_asset_path='C:/Users/menon/OneDrive/Documents/NYC/blobby/webcam/pose_landmarker_heavy.task'),
+    base_options=BaseOptions(model_asset_path='webcam/pose_landmarker_heavy.task'),
     running_mode=VisionRunningMode.LIVE_STREAM,
     output_segmentation_masks=True,
     result_callback=set_result)
