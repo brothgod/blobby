@@ -46,14 +46,17 @@ def process_image(result):
 
     # Find contours
     contours, hierarchy = cv2.findContours(gray_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    
+    # If there are no contours, return None
+    if not contours:
+        return None
 
-    # Draw contours on the mask image for visualization
-    contour_image = mask_image.copy()
-
+    # Find the largest contour based on area
+    contour = max(contours, key=cv2.contourArea)
     convexity_factor = .01
     # Approximate the convex hull polygon (smooths edges)
-    epsilon = convexity_factor * cv2.arcLength(contours[0], True)
-    approx_hull = cv2.approxPolyDP(contours[0], epsilon, True)
+    epsilon = convexity_factor * cv2.arcLength(contour, True)
+    approx_hull = cv2.approxPolyDP(contour, epsilon, True)
 
     if len(approx_hull) > 2:  # At least 3 points for a curve
         points = approx_hull.reshape(-1, 2)
