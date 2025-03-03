@@ -123,7 +123,7 @@ while True:
     output_image = process_image(latest_result)
     
     if output_image is not None:
-        cv2.imshow("Segmentation Mask", output_image)
+        cv2.imshow("blobby", output_image)
     
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
