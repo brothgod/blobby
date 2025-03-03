@@ -44,7 +44,7 @@ def process_image(result):
 
 # Load PoseLandmarker with async mode
 options = PoseLandmarkerOptions(
-    base_options=BaseOptions(model_asset_path='webcam/pose_landmarker_full.task'),
+    base_options=BaseOptions(model_asset_path='webcam/pose_landmarker_heavy.task'),
     running_mode=VisionRunningMode.LIVE_STREAM,
     output_segmentation_masks=True,
     result_callback=set_result
