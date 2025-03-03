@@ -2,7 +2,7 @@ import cv2
 import mediapipe as mp
 import numpy as np
 import threading
-import time
+from scipy.interpolate import CubicSpline
 
 # MediaPipe setup
 #https://ai.google.dev/edge/api/mediapipe/python/mp/tasks/vision/PoseLandmarker#detect_async
@@ -30,7 +30,7 @@ def process_image(result):
     segmentation_mask = result.segmentation_masks[0].numpy_view()
     
     # Define colors
-    MASK_COLOR = (0, 255, 0)  # Green
+    MASK_COLOR = (255, 255, 255)  # White
     BG_COLOR = (0, 0, 0)  # Black
 
     # Create color images (H, W, 3)
@@ -39,12 +39,50 @@ def process_image(result):
     
     # Create condition mask (ensure it's properly thresholded)
     condition = np.stack((segmentation_mask,) * 3, axis=-1) > 0.2
-    
-    return np.where(condition, fg_image, bg_image)
+    mask_image = np.where(condition, fg_image, bg_image)
+
+    # Convert to grayscale for contour detection
+    gray_mask = cv2.cvtColor(mask_image, cv2.COLOR_BGR2GRAY)
+
+    # Find contours
+    contours, hierarchy = cv2.findContours(gray_mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+    # Draw contours on the mask image for visualization
+    contour_image = mask_image.copy()
+
+    convexity_factor = .01
+    # Approximate the convex hull polygon (smooths edges)
+    epsilon = convexity_factor * cv2.arcLength(contours[0], True)
+    approx_hull = cv2.approxPolyDP(contours[0], epsilon, True)
+
+    if len(approx_hull) > 2:  # At least 3 points for a curve
+        points = approx_hull.reshape(-1, 2)
+        x = points[:, 0]
+        y = points[:, 1]
+        
+        # Fit cubic spline to the points
+        spline_x = CubicSpline(np.arange(len(x)), x, bc_type='natural')
+        spline_y = CubicSpline(np.arange(len(y)), y, bc_type='natural')
+        
+        # Generate smoothed points along the spline
+        smooth_points = np.linspace(0, len(x)-1, num=100)
+        smooth_x = spline_x(smooth_points).astype(np.int32)
+        smooth_y = spline_y(smooth_points).astype(np.int32)
+        
+        # Draw the smooth curve
+        curve_points = np.vstack((smooth_x, smooth_y)).T
+        cv2.polylines(bg_image, [curve_points], isClosed=True, color=(0, 0, 255), thickness=2)
+
+    # Draw the approximated convex hull
+    # cv2.drawContours(bg_image, [approx_hull], -1, (0, 0, 255), 2)  # Red contour
+    # cv2.drawContours(contour_image, [hull], -1, (0, 0, 255), 2)  # Draw convex hull in red
+    # cv2.drawContours(contour_image, contours, -1, (0, 0, 255), 2)  # Red contours
+
+    return bg_image  # Return image with contours drawn
 
 # Load PoseLandmarker with async mode
 options = PoseLandmarkerOptions(
-    base_options=BaseOptions(model_asset_path='webcam/pose_landmarker_heavy.task'),
+    base_options=BaseOptions(model_asset_path='webcam/pose_landmarker_lite.task'),
     running_mode=VisionRunningMode.LIVE_STREAM,
     output_segmentation_masks=True,
     result_callback=set_result
