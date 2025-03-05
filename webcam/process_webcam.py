@@ -2,6 +2,8 @@ import cv2
 import mediapipe as mp
 import numpy as np
 import threading
+import websocket
+import json
 from scipy.interpolate import CubicSpline
 
 # MediaPipe setup
@@ -15,7 +17,6 @@ VisionRunningMode = mp.tasks.vision.RunningMode
 # Store latest result (thread-safe)
 current_result = None
 result_lock = threading.Lock()
-
 def set_result(result: PoseLandmarkerResult, output_image: mp.Image, timestamp_ms: int):
     """Callback function to update segmentation mask result asynchronously."""
     global current_result
@@ -25,7 +26,7 @@ def set_result(result: PoseLandmarkerResult, output_image: mp.Image, timestamp_m
 def process_image(result):
     """Applies segmentation mask overlay."""
     if result is None or result.segmentation_masks is None:
-        return None
+        return None, None
 
     segmentation_mask = result.segmentation_masks[0].numpy_view()
     
@@ -49,7 +50,7 @@ def process_image(result):
     
     # If there are no contours, return None
     if not contours:
-        return None
+        return None, None
 
     # Find the largest contour based on area
     contour = max(contours, key=cv2.contourArea)
@@ -57,6 +58,7 @@ def process_image(result):
     # Approximate the convex hull polygon (smooths edges)
     epsilon = convexity_factor * cv2.arcLength(contour, True)
     approx_hull = cv2.approxPolyDP(contour, epsilon, True)
+    curve_points = None
 
     if len(approx_hull) > 2:  # At least 3 points for a curve
         points = approx_hull.reshape(-1, 2)
@@ -76,16 +78,11 @@ def process_image(result):
         curve_points = np.vstack((smooth_x, smooth_y)).T
         cv2.polylines(bg_image, [curve_points], isClosed=True, color=(0, 0, 255), thickness=2)
 
-    # Draw the approximated convex hull
-    # cv2.drawContours(bg_image, [approx_hull], -1, (0, 0, 255), 2)  # Red contour
-    # cv2.drawContours(contour_image, [hull], -1, (0, 0, 255), 2)  # Draw convex hull in red
-    # cv2.drawContours(contour_image, contours, -1, (0, 0, 255), 2)  # Red contours
-
-    return bg_image  # Return image with contours drawn
+    return bg_image, curve_points  # Return image with contours drawn
 
 # Load PoseLandmarker with async mode
 options = PoseLandmarkerOptions(
-    base_options=BaseOptions(model_asset_path='webcam/pose_landmarker_lite.task'),
+    base_options=BaseOptions(model_asset_path='webcam/pose_landmarker_full.task'),
     running_mode=VisionRunningMode.LIVE_STREAM,
     output_segmentation_masks=True,
     result_callback=set_result
@@ -115,14 +112,22 @@ def frame_capture():
 # Start async frame capture thread
 threading.Thread(target=frame_capture, daemon=True).start()
 
+ws = websocket.WebSocket()
+# ws.connect("ws://localhost:3000")
+def send_blob(blob):
+    points_list = [{"x": int(x), "y": int(y)} for x, y in blob]
+    ws.send(json.dumps(points_list))
+
+
 # Main display loop
 while True:
     with result_lock:
         latest_result = current_result  # Copy latest result safely
 
-    output_image = process_image(latest_result)
+    output_image, blob = process_image(latest_result)
     
     if output_image is not None:
+        # send_blob(blob)
         cv2.imshow("blobby", output_image)
     
     if cv2.waitKey(1) & 0xFF == ord('q'):
