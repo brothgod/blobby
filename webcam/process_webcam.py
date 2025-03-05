@@ -76,7 +76,7 @@ def process_image(result):
         
         # Draw the smooth curve
         curve_points = np.vstack((smooth_x, smooth_y)).T
-        cv2.polylines(bg_image, [curve_points], isClosed=True, color=(0, 0, 255), thickness=2)
+        cv2.polylines(bg_image, [curve_points], isClosed=True, color=(255, 255, 255), thickness=2)
 
     return bg_image, curve_points  # Return image with contours drawn
 
@@ -113,9 +113,10 @@ def frame_capture():
 threading.Thread(target=frame_capture, daemon=True).start()
 
 ws = websocket.WebSocket()
-# ws.connect("ws://localhost:3000")
+ws.connect("ws://localhost:3000")
 def send_blob(blob):
-    points_list = [{"x": int(x), "y": int(y)} for x, y in blob]
+    points_list = {"blob":[{"x": int(x), "y": int(y)} for x, y in blob]}
+    print(json.dumps(points_list))
     ws.send(json.dumps(points_list))
 
 
@@ -127,10 +128,11 @@ while True:
     output_image, blob = process_image(latest_result)
     
     if output_image is not None:
-        # send_blob(blob)
+        send_blob(blob)
         cv2.imshow("blobby", output_image)
     
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
+ws.close()
 cv2.destroyAllWindows()
