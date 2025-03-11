@@ -24,8 +24,7 @@ class WebcamController:
 
         for webcam in self.webcams:
             webcam.start_capture()
-            # threading.Thread(target=self._run_webcam, args=(webcam,), daemon=True).start()
-            self._run_webcam(webcam)
+            threading.Thread(target=self._run_webcam, args=(webcam,), daemon=False).start()
     
     def _send_blob(self, points_list):
         self.ws.send(json.dumps(points_list))
@@ -34,11 +33,10 @@ class WebcamController:
         while(True):
             index, output_image, blob = webcam.get_blob()
             if output_image is not None:
-                points_list = {f"blob_{index}":[{"x": int(x), "y": int(y)} for x, y in blob]}
+                points_list = {f"blob":[{"x": int(x), "y": int(y)} for x, y in blob],  "index": index}
                 if(self.use_websocket):
                     self._send_blob(points_list)
                 # cv2.imshow(f"blob_{index}", output_image)
-            
             # if cv2.waitKey(1) & 0xFF == ord('q'):
             #     break
 

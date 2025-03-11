@@ -1,7 +1,10 @@
 const socketOutput = document.getElementById("socketOutput");
 const ws = new WebSocket("ws://localhost:3000", "master"); // Connect as master
-const canvas = document.getElementById("myCanvas");
-const ctx = canvas.getContext("2d");
+const canvases = [
+  document.getElementById("canvas-0"),
+  document.getElementById("canvas-1"),
+];
+const ctxs = canvases.map((canvas) => canvas.getContext("2d"));
 
 ws.onopen = () => {
   socketOutput.textContent += "Connected as Master Client\n";
@@ -10,9 +13,11 @@ ws.onopen = () => {
 ws.onmessage = (event) => {
   // Print incoming messages from external clients
   // socketOutput.textContent += `Client: ${event.data}\n`;
-  const points = JSON.parse(event.data);
-  console.log(points);
-  drawPolyline(points);
+  const data_json = JSON.parse(event.data);
+  const points = data_json.blob;
+  console.log(data_json);
+  const index = parseInt(data_json.index);
+  drawPolyline(index, points);
 };
 
 ws.onclose = () => {
@@ -20,10 +25,11 @@ ws.onclose = () => {
 };
 
 // Function to draw polyline on canvas
-function drawPolyline(points) {
+function drawPolyline(index, points) {
+  const ctx = ctxs[index];
   if (points.length < 2) return; // Need at least two points to draw a line
 
-  ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear previous drawings
+  ctx.clearRect(0, 0, canvases[index].width, canvases[index].height); // Clear previous drawings
   ctx.beginPath();
   ctx.moveTo(points[0].x, points[0].y);
 
