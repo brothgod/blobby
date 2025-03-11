@@ -15,12 +15,12 @@ PoseLandmarkerResult = mp.tasks.vision.PoseLandmarkerResult
 VisionRunningMode = mp.tasks.vision.RunningMode
 
 class Webcam:
-    def __init__(self, webcam_rtsp: str = None, level:str = "full"):
-        if not webcam_rtsp:
-            self.cap = cv2.VideoCapture(0)
+    def __init__(self, webcam_stream: str, index: str, level:str = "full", ):
+        if webcam_stream.isdigit():
+            self.cap = cv2.VideoCapture(int(webcam_stream))
         else:
-            self.cap = cv2.VideoCapture(webcam_rtsp)
-        self.current_frame = None
+            self.cap = cv2.VideoCapture(webcam_stream)
+        self.current_mask = None
         self.frame_lock = threading.Lock()
         self.options = PoseLandmarkerOptions(
             base_options=BaseOptions(model_asset_path=f'webcam/pose_landmarker_{level}.task'),
@@ -28,7 +28,8 @@ class Webcam:
             output_segmentation_masks=True,
             result_callback=self._set_current_mask
         )
-        self.frame_timstamp = 0
+        self.frame_timestamp = 0
+        self.index = index
 
     def start_capture(self):
         threading.Thread(target=self._frame_capture, daemon=True).start()
@@ -43,10 +44,9 @@ class Webcam:
                 self.frame_timestamp += 1
                 mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame)
                 landmarker.detect_async(mp_image, self.frame_timestamp)
-
         self.cap.release()
     
-    def _set_current_mask(self, result: PoseLandmarkerResult):
+    def _set_current_mask(self, result: PoseLandmarkerResult, output_image: mp.Image, timestamp_ms: int):
         with self.frame_lock:
             self.current_mask = result
     
@@ -55,10 +55,10 @@ class Webcam:
             latest_result = self.current_mask  # Copy latest result safely
         return self._process_image(latest_result)
         
-    def _process_image(result):
+    def _process_image(self, result):
         """Applies segmentation mask overlay."""
         if result is None or result.segmentation_masks is None:
-            return None, None
+            return None, None, None
 
         segmentation_mask = result.segmentation_masks[0].numpy_view()
         
@@ -82,7 +82,7 @@ class Webcam:
         
         # If there are no contours, return None
         if not contours:
-            return None, None
+            return None, None, None
 
         # Find the largest contour based on area
         contour = max(contours, key=cv2.contourArea)
@@ -110,4 +110,4 @@ class Webcam:
             curve_points = np.vstack((smooth_x, smooth_y)).T
             cv2.polylines(bg_image, [curve_points], isClosed=True, color=(255, 255, 255), thickness=2)
 
-        return bg_image, curve_points  # Return image with contours drawn
+        return self.index, bg_image, curve_points  # Return image with contours drawn

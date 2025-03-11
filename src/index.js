@@ -10,7 +10,7 @@ ws.onopen = () => {
 ws.onmessage = (event) => {
   // Print incoming messages from external clients
   // socketOutput.textContent += `Client: ${event.data}\n`;
-  const points = JSON.parse(event.data).blob;
+  const points = JSON.parse(event.data);
   console.log(points);
   drawPolyline(points);
 };

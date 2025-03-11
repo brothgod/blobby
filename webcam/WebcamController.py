@@ -1,10 +1,8 @@
 import cv2
 import mediapipe as mp
-import numpy as np
 import threading
 import websocket
 import json
-from scipy.interpolate import CubicSpline
 from Webcam import Webcam
 
 # MediaPipe setup
@@ -16,40 +14,35 @@ PoseLandmarkerResult = mp.tasks.vision.PoseLandmarkerResult
 VisionRunningMode = mp.tasks.vision.RunningMode
 
 class WebcamController:
-    def __init__(self, rtsp_list: list[str], local_webcam: bool, level: str):
-        if local_webcam:
-            self.webcams = [Webcam(level=level)]
-        else:
-            self.webcams = [Webcam(webcam_rtsp = rtsp, level=level) for rtsp in rtsp_list]
+    def __init__(self, webcam_list: list[str], use_websocket: bool, level: str = "full"):
+        self.webcams = [Webcam(webcam_stream = stream, level=level, index=index) for index, stream in enumerate(webcam_list)]
+        self.use_websocket = use_websocket
         
-        self.ws = websocket.WebSocket()
-        self.ws.connect("ws://localhost:3000")
+        if use_websocket:
+            self.ws = websocket.WebSocket()
+            self.ws.connect("ws://localhost:3000")
 
-        self.blob_locks = []
         for webcam in self.webcams:
             webcam.start_capture()
-            self.blob_locks.push(threading.Lock())
-        
-    def _get_blob(webcam: Webcam):
-        return
+            # threading.Thread(target=self._run_webcam, args=(webcam,), daemon=True).start()
+            self._run_webcam(webcam)
     
-    def _set_blob(webcam: Webcam):
-        return
-    
-    def _send_blob(self, index):
-        points_list = {f"blob_{index}":[{"x": int(x), "y": int(y)} for x, y in blob]}
-        print(json.dumps(points_list))
+    def _send_blob(self, points_list):
         self.ws.send(json.dumps(points_list))
     
-    def _run_webcam(self,webcam: Webcam):
+    def _run_webcam(self, webcam: Webcam):
         while(True):
-            output_image, blob = webcam.get_blob()
-            points_list = {"blob":[{"x": int(x), "y": int(y)} for x, y in blob]}
+            index, output_image, blob = webcam.get_blob()
             if output_image is not None:
-                self._send_blob(blob)
-                cv2.imshow("blobby", output_image)
+                points_list = {f"blob_{index}":[{"x": int(x), "y": int(y)} for x, y in blob]}
+                if(self.use_websocket):
+                    self._send_blob(points_list)
+                # cv2.imshow(f"blob_{index}", output_image)
             
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+            # if cv2.waitKey(1) & 0xFF == ord('q'):
+            #     break
 
-    
+webcam_list = ["0"]
+use_websocket = True
+webcam_controller = WebcamController(webcam_list=webcam_list, use_websocket=use_websocket)
+
