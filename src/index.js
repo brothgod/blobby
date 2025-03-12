@@ -3,6 +3,8 @@ const ws = new WebSocket("ws://localhost:3000", "master"); // Connect as master
 const canvases = [
   document.getElementById("canvas-0"),
   document.getElementById("canvas-1"),
+  document.getElementById("canvas-2"),
+  document.getElementById("canvas-3"),
 ];
 const ctxs = canvases.map((canvas) => canvas.getContext("2d"));
 
@@ -15,7 +17,7 @@ ws.onmessage = (event) => {
   // socketOutput.textContent += `Client: ${event.data}\n`;
   const data_json = JSON.parse(event.data);
   const points = data_json.blob;
-  console.log(data_json);
+  // console.log(data_json);
   const index = parseInt(data_json.index);
   drawPolyline(index, points);
 };
@@ -37,7 +39,7 @@ function drawPolyline(index, points) {
     ctx.lineTo(points[i].x, points[i].y);
   }
 
-  ctx.strokeStyle = "#000000"; // Set line color
-  ctx.lineWidth = 2; // Set line thickness
-  ctx.stroke();
+  ctx.closePath();
+  ctx.fillStyle = "black";
+  ctx.fill();
 }

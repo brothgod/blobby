@@ -40,7 +40,8 @@ class WebcamController:
             # if cv2.waitKey(1) & 0xFF == ord('q'):
             #     break
 
-webcam_list = ["0"]
+webcam_list = ["0", "1", "2"]
 use_websocket = True
-webcam_controller = WebcamController(webcam_list=webcam_list, use_websocket=use_websocket)
+level = "lite"
+webcam_controller = WebcamController(webcam_list=webcam_list, use_websocket=use_websocket, level=level)
 
