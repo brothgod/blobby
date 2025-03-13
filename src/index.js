@@ -6,6 +6,8 @@ const canvases = [
   document.getElementById("canvas-2"),
   document.getElementById("canvas-3"),
 ];
+const colors = ["#ff005a", "#ff8818", "#6cbb00"];
+
 const ctxs = canvases.map((canvas) => canvas.getContext("2d"));
 
 ws.onopen = () => {
@@ -40,6 +42,6 @@ function drawPolyline(index, points) {
   }
 
   ctx.closePath();
-  ctx.fillStyle = "black";
+  ctx.fillStyle = colors[index];
   ctx.fill();
 }

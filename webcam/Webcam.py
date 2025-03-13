@@ -15,7 +15,7 @@ PoseLandmarkerResult = mp.tasks.vision.PoseLandmarkerResult
 VisionRunningMode = mp.tasks.vision.RunningMode
 
 class Webcam:
-    def __init__(self, webcam_stream: str, index: str, level:str = "full", ):
+    def __init__(self, webcam_stream: str, index: str, level:str = "full" ):
         if webcam_stream.isdigit():
             self.cap = cv2.VideoCapture(int(webcam_stream))
         else:

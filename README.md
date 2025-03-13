@@ -4,9 +4,10 @@
 
 3 terminals are needed:
 
-1. `npm run dev`
-2. `node src/server.js`
-3. `python webcam/process_webcam.py`
+1.  `npm run build`
+    `npm run dev`
+2.  `node src/server.js`
+3.  `python webcam/WebcamController.py`
 
 ### Week 7
 

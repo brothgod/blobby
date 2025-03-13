@@ -2,25 +2,15 @@ body {
   margin: 0;
 }
 
-#stats {
-  position: relative;
-  width: 100%;
-  height: 80px;
-}
-
 #main {
   position: relative;
   margin: 0;
-}
-
-#canvas-wrapper {
-  position: relative;
 }
 
 .block-container {
   text-align: left;
 }
 
-#stats {
-  display: inline-block;
+#canvas-container {
+  display: flex;
 }

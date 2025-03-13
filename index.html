@@ -4,14 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>WebSocket Master Client</title>
+    <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <h1>WebSocket Master Client</h1>
     <pre id="socketOutput"></pre>
-    <canvas id="canvas-0" width="2000" height="2000"></canvas>
-    <canvas id="canvas-1" width="2000" height="2000"></canvas>
-    <canvas id="canvas-2" width="2000" height="2000"></canvas>
-    <canvas id="canvas-3" width="2000" height="2000"></canvas>
+    <div id="canvas-container">
+      <canvas id="canvas-0" width="1920" height="1080"></canvas>
+      <canvas id="canvas-1" width="1920" height="1080"></canvas>
+      <canvas id="canvas-2" width="1920" height="1080"></canvas>
+      <canvas id="canvas-3" width="1920" height="1080"></canvas>
+    </div>
     <!-- Area to print WebSocket messages -->
   </body>
   <script type="module" src="src/index.js"></script>
