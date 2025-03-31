@@ -20,6 +20,7 @@ class Webcam:
             self.cap = cv2.VideoCapture(int(webcam_stream))
         else:
             self.cap = cv2.VideoCapture(webcam_stream)
+        self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
         self.current_mask = None
         self.frame_lock = threading.Lock()
         self.options = PoseLandmarkerOptions(
@@ -32,7 +33,8 @@ class Webcam:
         self.index = index
 
     def start_capture(self):
-        threading.Thread(target=self._frame_capture, daemon=True).start() #TODO: switch this to multiprocessing? or to the cap.set command above? 
+        threading.Thread(target=self._frame_capture, daemon=True).start() 
+        #TODO: remove the threading, change it so that the process start to end occurs in this class (including sending to websocket)
 
     def _frame_capture(self):
         with PoseLandmarker.create_from_options(self.options) as landmarker:

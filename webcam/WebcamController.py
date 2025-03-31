@@ -24,6 +24,7 @@ class WebcamController:
         for webcam in self.webcams:
             webcam.start_capture()
             threading.Thread(target=self._run_webcam, args=(webcam,), daemon=True).start()
+            #TODO: change this to multiprocessing, and pass the websocket to the webcam so that it can do everything
     
     def _send_blob(self, points_list):
         self.ws.send(json.dumps(points_list))
