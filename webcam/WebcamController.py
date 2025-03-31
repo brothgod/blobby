@@ -1,4 +1,3 @@
-import cv2
 import mediapipe as mp
 import threading
 import websocket
@@ -24,24 +23,28 @@ class WebcamController:
 
         for webcam in self.webcams:
             webcam.start_capture()
-            threading.Thread(target=self._run_webcam, args=(webcam,), daemon=False).start()
+            threading.Thread(target=self._run_webcam, args=(webcam,), daemon=True).start()
     
     def _send_blob(self, points_list):
         self.ws.send(json.dumps(points_list))
     
     def _run_webcam(self, webcam: Webcam):
         while(True):
-            index, output_image, blob = webcam.get_blob()
-            if output_image is not None:
-                points_list = {f"blob":[{"x": int(x), "y": int(y)} for x, y in blob],  "index": index}
-                if(self.use_websocket):
-                    self._send_blob(points_list)
+            try:
+                index, output_image, blob = webcam.get_blob()
+                if output_image is not None:
+                    points_list = {f"blob":[{"x": int(x), "y": int(y)} for x, y in blob],  "index": index}
+                    if(self.use_websocket):
+                        self._send_blob(points_list)
                 # cv2.imshow(f"blob_{index}", output_image)
             # if cv2.waitKey(1) & 0xFF == ord('q'):
             #     break
+            except:
+                print("ERROR")
 
-webcam_list = ["0", "1", "2"]
+webcam_list = ["0"]
 use_websocket = True
 level = "lite"
 webcam_controller = WebcamController(webcam_list=webcam_list, use_websocket=use_websocket, level=level)
-
+while(True):
+    do = "nothing"

@@ -12,4 +12,9 @@
 ### Week 7
 
 - Added websocket control
-- Websocket middlemad relays blob points from Python script to website, which displays it
+- Websocket middleman relays blob points from Python script to website, which displays it
+
+### Week 8
+
+- Added multiple canvases
+- Added "master" canvas and worker model

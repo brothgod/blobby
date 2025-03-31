@@ -2,9 +2,8 @@ import cv2
 import mediapipe as mp
 import numpy as np
 import threading
-import websocket
-import json
 from scipy.interpolate import CubicSpline
+import time
 
 # MediaPipe setup
 #https://ai.google.dev/edge/api/mediapipe/python/mp/tasks/vision/PoseLandmarker#detect_async
@@ -16,6 +15,7 @@ VisionRunningMode = mp.tasks.vision.RunningMode
 
 class Webcam:
     def __init__(self, webcam_stream: str, index: str, level:str = "full" ):
+        #TODO: remove threading and add this? cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # Set buffer size to 1 frame (if supported)
         if webcam_stream.isdigit():
             self.cap = cv2.VideoCapture(int(webcam_stream))
         else:
@@ -32,12 +32,15 @@ class Webcam:
         self.index = index
 
     def start_capture(self):
-        threading.Thread(target=self._frame_capture, daemon=True).start()
+        threading.Thread(target=self._frame_capture, daemon=True).start() #TODO: switch this to multiprocessing? or to the cap.set command above? 
 
     def _frame_capture(self):
         with PoseLandmarker.create_from_options(self.options) as landmarker:
             while self.cap.isOpened():
                 ret, frame = self.cap.read()
+                height, width, _ = frame.shape  # Get height and width
+                print(f"Frame width: {width}, Frame height: {height}")
+                
                 if not ret:
                     break
 
@@ -51,6 +54,7 @@ class Webcam:
             self.current_mask = result
     
     def get_blob(self):
+        time.sleep(.1)
         with self.frame_lock:
             latest_result = self.current_mask  # Copy latest result safely
         return self._process_image(latest_result)
