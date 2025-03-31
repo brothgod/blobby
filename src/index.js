@@ -3,9 +3,9 @@ const ws = new WebSocket("ws://localhost:3000", "master"); // Connect as master
 
 const canvasContainer = document.getElementById("canvas-container");
 const numWebcams = 1;
-const numCanvases = 4;
-const canvasWidth = 1920;
-const canvasHeight = 1080;
+const numCanvases = 25;
+const canvasWidth = 100;
+const canvasHeight = 100;
 //The master canvases, which the rendering is done on
 const offscreenCanvases = [];
 for (let i = 0; i < numWebcams; i++) {

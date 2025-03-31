@@ -38,14 +38,24 @@ class Webcam:
         with PoseLandmarker.create_from_options(self.options) as landmarker:
             while self.cap.isOpened():
                 ret, frame = self.cap.read()
-                height, width, _ = frame.shape  # Get height and width
-                print(f"Frame width: {width}, Frame height: {height}")
                 
                 if not ret:
                     break
 
+                # Step 1: Make the frame square
+                height, width, _ = frame.shape
+                min_dim = min(height, width)  # Choose the smaller dimension
+
+                # Crop the frame to be square (centered crop)
+                center_x, center_y = width // 2, height // 2
+                cropped_frame = frame[center_y - min_dim // 2:center_y + min_dim // 2, 
+                                    center_x - min_dim // 2:center_x + min_dim // 2]
+
+                # Step 2: Resize the cropped square frame to a specific side length (e.g., 100px)
+                square_resized = cv2.resize(cropped_frame, (100, 100))  # Resize to 100x100 pixels
+
                 self.frame_timestamp += 1
-                mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame)
+                mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=square_resized)
                 landmarker.detect_async(mp_image, self.frame_timestamp)
         self.cap.release()
     

@@ -17,7 +17,7 @@ self.onmessage = (event) => {
   }
 
   if (points.length < 2) return;
-  ctx.clearRect(0, 0, 1920, 1080);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   ctx.beginPath();
   ctx.moveTo(points[0].x, points[0].y);

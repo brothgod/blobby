@@ -10,7 +10,3 @@ body {
 .block-container {
   text-align: left;
 }
-
-#canvas-container {
-  display: flex;
-}
