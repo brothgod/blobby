@@ -2,3 +2,4 @@ mediapipe
 numpy
 opencv
 time
+websocket-client

@@ -1,25 +1,26 @@
+import constants from "../constants.yaml";
+
+const numWebcams = constants.NUM_WEBCAMS;
+const numCanvases = constants.NUM_CANVASES;
+const canvasSide = constants.CANVAS_SIDE;
 const socketOutput = document.getElementById("socket-output");
 const ws = new WebSocket("ws://localhost:3000", "master"); // Connect as master
 
 const canvasContainer = document.getElementById("canvas-container");
-const numWebcams = 1;
-const numCanvases = 25;
-const canvasWidth = 100;
-const canvasHeight = 100;
 //The master canvases, which the rendering is done on
 const offscreenCanvases = [];
 for (let i = 0; i < numWebcams; i++) {
   let masterCanvas = document.createElement("canvas");
-  masterCanvas.width = canvasWidth;
-  masterCanvas.height = canvasHeight;
+  masterCanvas.width = canvasSide;
+  masterCanvas.height = canvasSide;
   masterCanvas.classList.add("masterCanvas");
   masterCanvas.id = `master-canvas-${i}`;
   let offscreenCanvas = masterCanvas.transferControlToOffscreen();
   let ctxList = [];
   for (let j = 0; j < numCanvases; j++) {
     let canvas = document.createElement("canvas");
-    canvas.width = canvasWidth;
-    canvas.height = canvasHeight;
+    canvas.width = canvasSide;
+    canvas.height = canvasSide;
     canvas.classList.add(`canvas-${i}`);
     let ctx = canvas.getContext("2d");
     ctxList.push(ctx);
@@ -37,7 +38,7 @@ const workers = offscreenCanvases.map(({ offscreenCanvas, ctxList }, index) => {
     const bitmap = event.data;
     ctxList.forEach((ctx, i) => {
       // Draw the bitmap onto the main thread canvas
-      ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+      ctx.clearRect(0, 0, canvasSide, canvasSide);
       ctx.drawImage(bitmap, 0, 0);
     });
   };

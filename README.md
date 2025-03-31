@@ -13,8 +13,11 @@
 
 - Added websocket control
 - Websocket middleman relays blob points from Python script to website, which displays it
+- Multiple webcams
+- Filled in shape
 
-### Week 8
+### Week 8/9
 
 - Added multiple canvases
 - Added "master" canvas and worker model
+- Added constants.yaml

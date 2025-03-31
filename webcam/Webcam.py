@@ -14,13 +14,14 @@ PoseLandmarkerResult = mp.tasks.vision.PoseLandmarkerResult
 VisionRunningMode = mp.tasks.vision.RunningMode
 
 class Webcam:
-    def __init__(self, webcam_stream: str, index: str, level:str = "full" ):
+    def __init__(self, webcam_stream: str, index: str, level:str = "full", canvas_side: int = 100 ):
         #TODO: remove threading and add this? cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # Set buffer size to 1 frame (if supported)
         if webcam_stream.isdigit():
             self.cap = cv2.VideoCapture(int(webcam_stream))
         else:
             self.cap = cv2.VideoCapture(webcam_stream)
         self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        self.canvas_side = canvas_side
         self.current_mask = None
         self.frame_lock = threading.Lock()
         self.options = PoseLandmarkerOptions(
@@ -54,7 +55,7 @@ class Webcam:
                                     center_x - min_dim // 2:center_x + min_dim // 2]
 
                 # Step 2: Resize the cropped square frame to a specific side length (e.g., 100px)
-                square_resized = cv2.resize(cropped_frame, (100, 100))  # Resize to 100x100 pixels
+                square_resized = cv2.resize(cropped_frame, (self.canvas_side, self.canvas_side))  # Resize to 100x100 pixels
 
                 self.frame_timestamp += 1
                 mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=square_resized)
