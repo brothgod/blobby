@@ -1,5 +1,5 @@
 NUM_WEBCAMS: 1
-NUM_CANVASES: 20
+NUM_CANVASES: 100
 CANVAS_SIDE: 100 #in pixels
 POSE_LEVEL: "lite" #lite, full, heavy
 USE_WEBSOCKET: True

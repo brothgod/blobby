@@ -1,9 +1,11 @@
+import cv2
 import mediapipe as mp
 import threading
 import websocket
 import json
 from Webcam import Webcam
 import yaml
+import traceback
 
 # MediaPipe setup
 #https://ai.google.dev/edge/api/mediapipe/python/mp/tasks/vision/PoseLandmarker#detect_async
@@ -38,11 +40,13 @@ class WebcamController:
                     points_list = {f"blob":[{"x": int(x), "y": int(y)} for x, y in blob],  "index": index}
                     if(self.use_websocket):
                         self._send_blob(points_list)
-                # cv2.imshow(f"blob_{index}", output_image)
-            # if cv2.waitKey(1) & 0xFF == ord('q'):
-            #     break
-            except:
-                print("ERROR")
+                    # cv2.imshow(f"blob_{index}", output_image)
+                    # if cv2.waitKey(1) & 0xFF == ord('q'):
+                    #     break
+            except Exception as e:
+                print(f"ERROR: {e}")
+                stack_trace = traceback.format_exc()
+                print("Stack trace:\n" + stack_trace)
 
 
 with open("constants.yaml", "r") as file:
