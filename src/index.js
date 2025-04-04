@@ -17,17 +17,23 @@ for (let i = 0; i < numWebcams; i++) {
   masterCanvas.id = `master-canvas-${i}`;
   let offscreenCanvas = masterCanvas.transferControlToOffscreen();
   let ctxList = [];
+  let canvasList = [];
   for (let j = 0; j < numCanvases; j++) {
     let canvas = document.createElement("canvas");
     canvas.width = canvasSide;
     canvas.height = canvasSide;
     canvas.classList.add(`canvas-${i}`);
     let ctx = canvas.getContext("2d");
+    canvasList.push(canvas);
     ctxList.push(ctx);
-    canvasContainer.appendChild(canvas);
   }
 
-  offscreenCanvases.push({ offscreenCanvas, ctxList });
+  offscreenCanvases.push({ offscreenCanvas, canvasList, ctxList });
+}
+for (let i = 0; i < numCanvases; i++) {
+  for (let j = 0; j < numWebcams; j++) {
+    canvasContainer.appendChild(offscreenCanvases[j].canvasList[i]);
+  }
 }
 
 const workers = offscreenCanvases.map(({ offscreenCanvas, ctxList }, index) => {
