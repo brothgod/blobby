@@ -1,9 +1,12 @@
+import json
+import traceback
 import cv2
 import mediapipe as mp
 import numpy as np
-import threading
 from scipy.interpolate import CubicSpline
 import time
+
+import websocket
 
 # MediaPipe setup
 #https://ai.google.dev/edge/api/mediapipe/python/mp/tasks/vision/PoseLandmarker#detect_async
@@ -14,30 +17,39 @@ PoseLandmarkerResult = mp.tasks.vision.PoseLandmarkerResult
 VisionRunningMode = mp.tasks.vision.RunningMode
 
 class Webcam:
-    def __init__(self, webcam_stream: str, index: str, level:str = "full", canvas_side: int = 100 ):
-        #TODO: remove threading and add this? cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # Set buffer size to 1 frame (if supported)
-        if webcam_stream.isdigit():
-            self.cap = cv2.VideoCapture(int(webcam_stream))
-        else:
-            self.cap = cv2.VideoCapture(webcam_stream)
-        self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+    def __init__(self, webcam_stream: str, index: str, level:str = "full", canvas_side: int = 100, ws_address:str =None ):
+        self.webcam_stream = webcam_stream
         self.canvas_side = canvas_side
         self.current_mask = None
-        self.frame_lock = threading.Lock()
+        self.ws_address = ws_address
         self.options = PoseLandmarkerOptions(
             base_options=BaseOptions(model_asset_path=f'webcam/pose_landmarker_{level}.task'),
             running_mode=VisionRunningMode.LIVE_STREAM,
             output_segmentation_masks=True,
-            result_callback=self._set_current_mask
+            result_callback=self._process_image
         )
         self.frame_timestamp = 0
         self.index = index
 
-    def start_capture(self):
-        threading.Thread(target=self._frame_capture, daemon=True).start() 
-        #TODO: remove the threading, change it so that the process start to end occurs in this class (including sending to websocket)
+    def _connect_to_websocket(self):
+        self.ws = websocket.WebSocket()
+        self.ws.connect(self.ws_address)
+    
+    def _send_blob(self, index, output_image, blob):
+        if output_image is not None:
+            points_list = {f"blob":[{"x": int(x), "y": int(y)} for x, y in blob],  "index": index}
+            if(self.ws):
+                self.ws.send(json.dumps(points_list))
 
-    def _frame_capture(self):
+    def generate_blobs(self):
+        if self.webcam_stream.isdigit():
+            self.cap = cv2.VideoCapture(int(self.webcam_stream))
+        else:
+            self.cap = cv2.VideoCapture(self.webcam_stream)
+        self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        if self.ws_address:
+            self._connect_to_websocket()
+
         with PoseLandmarker.create_from_options(self.options) as landmarker:
             while self.cap.isOpened():
                 ret, frame = self.cap.read()
@@ -59,20 +71,15 @@ class Webcam:
 
                 self.frame_timestamp += 1
                 mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=square_resized)
-                landmarker.detect_async(mp_image, self.frame_timestamp)
+                try:
+                    landmarker.detect_async(mp_image, self.frame_timestamp)
+                except Exception as e:
+                    print(f"ERROR: {e}")
+                    stack_trace = traceback.format_exc()
+                    print("Stack trace:\n" + stack_trace)
         self.cap.release()
-    
-    def _set_current_mask(self, result: PoseLandmarkerResult, output_image: mp.Image, timestamp_ms: int):
-        with self.frame_lock:
-            self.current_mask = result
-    
-    def get_blob(self):
-        time.sleep(.1)
-        with self.frame_lock:
-            latest_result = self.current_mask  # Copy latest result safely
-        return self._process_image(latest_result)
         
-    def _process_image(self, result):
+    def _process_image(self, result: PoseLandmarkerResult, output_image: mp.Image, timestamp_ms: int):
         """Applies segmentation mask overlay."""
         if result is None or result.segmentation_masks is None:
             return None, None, None
@@ -127,4 +134,5 @@ class Webcam:
             curve_points = np.vstack((smooth_x, smooth_y)).T
             cv2.polylines(bg_image, [curve_points], isClosed=True, color=(255, 255, 255), thickness=2)
 
-        return self.index, bg_image, curve_points  # Return image with contours drawn
+        # return self.index, bg_image, curve_points  # Return image with contours drawn
+        self._send_blob(self.index, bg_image, curve_points)  # Return image with contours drawn)

@@ -1,8 +1,8 @@
-import constants from "../constants.yaml";
+import constants from "../constants.json";
 
-const numWebcams = constants.NUM_WEBCAMS;
-const numCanvases = constants.NUM_CANVASES;
-const canvasSide = constants.CANVAS_SIDE;
+const numWebcams = constants["NUM_WEBCAMS"];
+const numCanvases = constants["NUM_CANVASES"];
+const canvasSide = constants["CANVAS_SIDE"];
 const socketOutput = document.getElementById("socket-output");
 const ws = new WebSocket("ws://localhost:3000", "master"); // Connect as master
 

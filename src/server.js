@@ -1,7 +1,7 @@
 import express from "express";
 import http from "http";
 import WebSocket, { WebSocketServer } from "ws";
-import path from "path";
+import constants from "../constants.json" with {type: "json"};
 
 const app = express();
 const server = http.createServer(app);
@@ -46,7 +46,7 @@ wss.on("connection", (socket, req) => {
   });
 });
 
-const PORT = 3000;
+const PORT = constants.WEBSOCKET_PORT;
 server.listen(PORT, () =>
   console.log(`Server running at http://localhost:${PORT}`)
 );
