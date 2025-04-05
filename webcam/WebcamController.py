@@ -13,7 +13,8 @@ VisionRunningMode = mp.tasks.vision.RunningMode
 
 class WebcamController:
     def __init__(self, webcam_list: list[str], use_websocket: bool, websocket_port: int, level: str = "full", canvas_side: int = 100):
-        self.webcams = [Webcam(webcam_stream = stream, level=level, index=index, canvas_side = canvas_side, ws_address=f"ws://localhost:{websocket_port}") for index, stream in enumerate(webcam_list)]
+        ws_address = f"ws://localhost:{websocket_port}" if use_websocket else None
+        self.webcams = [Webcam(webcam_stream = stream, level=level, index=index, canvas_side = canvas_side, ws_address=ws_address) for index, stream in enumerate(webcam_list)]
 
         for webcam in self.webcams:
             Process(target=webcam.generate_blobs, daemon=True).start()
