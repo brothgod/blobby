@@ -31,4 +31,4 @@ node_modules/
 /build
 /.cache
 
-webcam/__pycache__
+webcam/__pycache__/
