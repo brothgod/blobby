@@ -21,3 +21,10 @@
 - Added multiple canvases
 - Added "master" canvas and worker model
 - Added constants.yaml
+
+### Week 10
+
+- Changed threading to multiprocessing
+- Changed json to yaml
+- Tested with two webcams, it worked!!
+- Alternated canvases
