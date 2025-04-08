@@ -39,7 +39,7 @@ class Webcam:
             points_list = {f"blob":[{"x": int(x), "y": int(y)} for x, y in blob],  "index": index, "height": height, "width": width}
             if(self.ws):
                 self.ws.send(json.dumps(points_list))
-        print("Sent blob")
+        # print("Sent blob")
 
     def generate_blobs(self):
         if self.webcam_stream.isdigit():
@@ -53,7 +53,7 @@ class Webcam:
         try:
             with PoseLandmarker.create_from_options(self.options) as landmarker:
                 while self.cap.isOpened():
-                    print(f"Loop started: {self.frame_timestamp}")
+                    # print(f"Loop started: {self.frame_timestamp}")
                     ret, frame = self.cap.read()
                     
                     if not ret:
@@ -78,7 +78,7 @@ class Webcam:
                     # threading.Event()
                     # asyncio.run(landmarker.detect_async(mp_image, self.frame_timestamp))
                     landmarker.detect_async(mp_image, self.frame_timestamp)
-                    print(f"Loop over: {self.frame_timestamp}")
+                    # print(f"Loop over: {self.frame_timestamp}")
                     self.frame_timestamp += 1
 
         except Exception as e:
@@ -89,7 +89,7 @@ class Webcam:
         
     def _process_image(self, result: PoseLandmarkerResult, output_image: mp.Image, timestamp_ms: int):
         """Applies segmentation mask overlay."""
-        print(f"Started image processing: {self.frame_timestamp}")
+        # print(f"Started image processing: {self.frame_timestamp}")
         if result is None or result.segmentation_masks is None:
             return None, None, None
 

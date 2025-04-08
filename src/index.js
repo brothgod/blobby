@@ -4,8 +4,8 @@ import { generateTilePattern, buildCanvasGrid } from "./canvasPattern.ts";
 const numWebcams = constants["NUM_WEBCAMS"];
 const socketOutput = document.getElementById("socket-output");
 const ws = new WebSocket("ws://localhost:3000", "master"); // Connect as master
-let rows = 5;
-let cols = 15;
+let rows = 3;
+let cols = 5;
 
 const canvasContainer = document.getElementById("canvas-container");
 let tilePattern = generateTilePattern(numWebcams, rows, cols, 0);
