@@ -4,7 +4,7 @@ import cv2
 import mediapipe as mp
 import numpy as np
 from scipy.interpolate import CubicSpline
-import time
+import asyncio
 
 import websocket
 
@@ -17,9 +17,8 @@ PoseLandmarkerResult = mp.tasks.vision.PoseLandmarkerResult
 VisionRunningMode = mp.tasks.vision.RunningMode
 
 class Webcam:
-    def __init__(self, webcam_stream: str, index: str, level:str = "full", canvas_side: int = 100, ws_address:str =None ):
+    def __init__(self, webcam_stream: str, index: str, level:str = "full", ws_address:str =None ):
         self.webcam_stream = webcam_stream
-        self.canvas_side = canvas_side
         self.current_mask = None
         self.ws_address = ws_address
         self.options = PoseLandmarkerOptions(
@@ -35,11 +34,12 @@ class Webcam:
         self.ws = websocket.WebSocket()
         self.ws.connect(self.ws_address)
     
-    def _send_blob(self, index, output_image, blob):
+    def _send_blob(self, index, output_image, blob, width, height):
         if output_image is not None:
-            points_list = {f"blob":[{"x": int(x), "y": int(y)} for x, y in blob],  "index": index}
+            points_list = {f"blob":[{"x": int(x), "y": int(y)} for x, y in blob],  "index": index, "height": height, "width": width}
             if(self.ws):
                 self.ws.send(json.dumps(points_list))
+        print("Sent blob")
 
     def generate_blobs(self):
         if self.webcam_stream.isdigit():
@@ -53,6 +53,7 @@ class Webcam:
         try:
             with PoseLandmarker.create_from_options(self.options) as landmarker:
                 while self.cap.isOpened():
+                    print(f"Loop started: {self.frame_timestamp}")
                     ret, frame = self.cap.read()
                     
                     if not ret:
@@ -67,13 +68,19 @@ class Webcam:
                     cropped_frame = frame[center_y - min_dim // 2:center_y + min_dim // 2, 
                                         center_x - min_dim // 2:center_x + min_dim // 2]
 
-                    # Step 2: Resize the cropped square frame to a specific side length (e.g., 100px)
-                    square_resized = cv2.resize(cropped_frame, (self.canvas_side, self.canvas_side))  # Resize to 100x100 pixels
+                    # Step 2: Convert BGR (OpenCV) to RGB
+                    cropped_frame_rgb = cv2.cvtColor(cropped_frame, cv2.COLOR_BGR2RGB)
 
-                    self.frame_timestamp += 1
-                    mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=square_resized)
+                    # Optional: Ensure data is contiguous (can help in some mediapipe backends)
+                    cropped_frame_rgb = np.ascontiguousarray(cropped_frame_rgb)
+
+                    mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=cropped_frame_rgb)
+                    # threading.Event()
+                    # asyncio.run(landmarker.detect_async(mp_image, self.frame_timestamp))
                     landmarker.detect_async(mp_image, self.frame_timestamp)
-                    print(f"Points sent: {self.frame_timestamp}")
+                    print(f"Loop over: {self.frame_timestamp}")
+                    self.frame_timestamp += 1
+
         except Exception as e:
             print(f"ERROR: {e}")
             stack_trace = traceback.format_exc()
@@ -82,10 +89,13 @@ class Webcam:
         
     def _process_image(self, result: PoseLandmarkerResult, output_image: mp.Image, timestamp_ms: int):
         """Applies segmentation mask overlay."""
+        print(f"Started image processing: {self.frame_timestamp}")
         if result is None or result.segmentation_masks is None:
             return None, None, None
 
         segmentation_mask = result.segmentation_masks[0].numpy_view()
+        width = output_image.width
+        height = output_image.height
         
         # Define colors
         MASK_COLOR = (255, 255, 255)  # White
@@ -136,4 +146,4 @@ class Webcam:
             cv2.polylines(bg_image, [curve_points], isClosed=True, color=(255, 255, 255), thickness=2)
 
         # return self.index, bg_image, curve_points  # Return image with contours drawn
-        self._send_blob(self.index, bg_image, curve_points)  # Return image with contours drawn)
+        self._send_blob(self.index, bg_image, curve_points, width, height)  # Return image with contours drawn)

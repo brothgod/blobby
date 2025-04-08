@@ -2,7 +2,6 @@ import constants from "../constants.json";
 import { generateTilePattern, buildCanvasGrid } from "./canvasPattern.ts";
 
 const numWebcams = constants["NUM_WEBCAMS"];
-const canvasSide = constants["CANVAS_SIDE"];
 const socketOutput = document.getElementById("socket-output");
 const ws = new WebSocket("ws://localhost:3000", "master"); // Connect as master
 let rows = 5;
@@ -28,14 +27,15 @@ const updateRowCols = (newRows, newCols) => {
 const offscreenCanvases = [];
 for (let i = 0; i < numWebcams; i++) {
   let masterCanvas = document.createElement("canvas");
-  masterCanvas.width = canvasSide;
-  masterCanvas.height = canvasSide;
   masterCanvas.classList.add("masterCanvas");
   masterCanvas.id = `master-canvas-${i}`;
   let offscreenCanvas = masterCanvas.transferControlToOffscreen();
   offscreenCanvases.push(offscreenCanvas);
 }
 
+const workerStatuses = offscreenCanvases.map(() => {
+  return { busy: false, latestData: null };
+});
 const workers = offscreenCanvases.map((offscreenCanvas, index) => {
   const worker = new Worker(new URL("drawWorker.js", import.meta.url));
   worker.postMessage({ offscreenCanvas }, [offscreenCanvas]);
@@ -47,28 +47,47 @@ const workers = offscreenCanvases.map((offscreenCanvas, index) => {
       ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
       ctx.drawImage(bitmap, 0, 0, ctx.canvas.width, ctx.canvas.height);
     });
+    workerStatuses[index].busy = false;
+    if (workerStatuses[index].latestData) {
+      const data = workerStatuses[index].latestData;
+      workerStatuses[index].latestData = null;
+      sendToWorker(data, index);
+    }
   };
   return worker;
 });
+
+const colors = ["#ff005a", "#ff8818", "#6cbb00"];
+function sendToWorker(data, index) {
+  const worker = workers[index];
+  const workerStatus = workerStatuses[index];
+  if (workerStatus.busy) {
+    // Save latest frame only
+    workerStatus.latestData = data;
+    return;
+  }
+
+  const points = data.blob;
+
+  if (points.length < 2) return;
+
+  worker.postMessage({
+    points,
+    color: colors[index],
+    height: data.height,
+    width: data.width,
+  });
+  workerStatus.busy = true;
+}
 
 ws.onopen = () => {
   socketOutput.textContent += "Connected as Master Client\n";
 };
 
-const colors = ["#ff005a", "#ff8818", "#6cbb00"];
 ws.onmessage = (event) => {
   const data_json = JSON.parse(event.data);
   console.log("Got message from WebSocket:", data_json);
-  const points = data_json.blob;
-  const index = parseInt(data_json.index);
-
-  if (points.length < 2) return;
-
-  const worker = workers[index];
-  worker.postMessage({
-    points,
-    color: colors[index],
-  });
+  sendToWorker(data_json, parseInt(data_json.index));
 };
 
 ws.onclose = () => {

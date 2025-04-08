@@ -4,7 +4,7 @@ let initialized = false;
 
 self.onmessage = (event) => {
   console.log("Data sent to worker:", event.data);
-  const { offscreenCanvas, points, color } = event.data;
+  const { offscreenCanvas, points, color, height, width } = event.data;
 
   // Initialize canvas and context only once
   if (!initialized) {
@@ -17,6 +17,9 @@ self.onmessage = (event) => {
   }
 
   if (points.length < 2) return;
+  canvas.height = height;
+  canvas.width = width;
+
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   ctx.beginPath();
