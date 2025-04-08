@@ -23,9 +23,9 @@ class Webcam:
         self.ws_address = ws_address
         self.options = PoseLandmarkerOptions(
             base_options=BaseOptions(model_asset_path=f'webcam/pose_landmarker_{level}.task'),
-            running_mode=VisionRunningMode.LIVE_STREAM,
-            output_segmentation_masks=True,
-            result_callback=self._process_image
+            running_mode=VisionRunningMode.IMAGE,
+            output_segmentation_masks=True
+            #result_callback=self._process_image
         )
         self.frame_timestamp = 0
         self.index = index
@@ -75,10 +75,10 @@ class Webcam:
                     cropped_frame_rgb = np.ascontiguousarray(cropped_frame_rgb)
 
                     mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=cropped_frame_rgb)
-                    # threading.Event()
-                    # asyncio.run(landmarker.detect_async(mp_image, self.frame_timestamp))
-                    landmarker.detect_async(mp_image, self.frame_timestamp)
-                    # print(f"Loop over: {self.frame_timestamp}")
+                    # landmarker.detect_async(mp_image, self.frame_timestamp)
+                    result = landmarker.detect(mp_image)
+                    self._process_image(result, mp_image.width, mp_image.height)
+                    print(f"Loop over: {self.frame_timestamp}")
                     self.frame_timestamp += 1
 
         except Exception as e:
@@ -87,15 +87,15 @@ class Webcam:
             print("Stack trace:\n" + stack_trace)
         self.cap.release()
         
-    def _process_image(self, result: PoseLandmarkerResult, output_image: mp.Image, timestamp_ms: int):
+    def _process_image(self, result: PoseLandmarkerResult, width, height): #output_image: mp.Image, timestamp_ms: int):
         """Applies segmentation mask overlay."""
         # print(f"Started image processing: {self.frame_timestamp}")
         if result is None or result.segmentation_masks is None:
             return None, None, None
 
         segmentation_mask = result.segmentation_masks[0].numpy_view()
-        width = output_image.width
-        height = output_image.height
+        # width = output_image.width
+        # height = output_image.height
         
         # Define colors
         MASK_COLOR = (255, 255, 255)  # White
