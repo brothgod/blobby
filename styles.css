@@ -6,3 +6,10 @@ body {
   position: relative;
   margin: 0;
 }
+
+#canvas-container {
+  display: grid;
+  gap: 0px; /* Space between grid items */
+  width: 100vw; /* Container width will fill the parent element */
+  height: 100vh; /* Adjust height as needed */
+}

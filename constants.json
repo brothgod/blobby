@@ -2,7 +2,7 @@
   "NUM_WEBCAMS": 1,
   "NUM_CANVASES": 100,
   "CANVAS_SIDE": 100,
-  "POSE_LEVEL": "lite",
+  "POSE_LEVEL": "full",
   "USE_WEBSOCKET": true,
   "WEBSOCKET_PORT": 3000
 }

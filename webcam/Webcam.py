@@ -50,33 +50,34 @@ class Webcam:
         if self.ws_address:
             self._connect_to_websocket()
 
-        with PoseLandmarker.create_from_options(self.options) as landmarker:
-            while self.cap.isOpened():
-                ret, frame = self.cap.read()
-                
-                if not ret:
-                    break
+        try:
+            with PoseLandmarker.create_from_options(self.options) as landmarker:
+                while self.cap.isOpened():
+                    ret, frame = self.cap.read()
+                    
+                    if not ret:
+                        break
 
-                # Step 1: Make the frame square
-                height, width, _ = frame.shape
-                min_dim = min(height, width)  # Choose the smaller dimension
+                    # Step 1: Make the frame square
+                    height, width, _ = frame.shape
+                    min_dim = min(height, width)  # Choose the smaller dimension
 
-                # Crop the frame to be square (centered crop)
-                center_x, center_y = width // 2, height // 2
-                cropped_frame = frame[center_y - min_dim // 2:center_y + min_dim // 2, 
-                                    center_x - min_dim // 2:center_x + min_dim // 2]
+                    # Crop the frame to be square (centered crop)
+                    center_x, center_y = width // 2, height // 2
+                    cropped_frame = frame[center_y - min_dim // 2:center_y + min_dim // 2, 
+                                        center_x - min_dim // 2:center_x + min_dim // 2]
 
-                # Step 2: Resize the cropped square frame to a specific side length (e.g., 100px)
-                square_resized = cv2.resize(cropped_frame, (self.canvas_side, self.canvas_side))  # Resize to 100x100 pixels
+                    # Step 2: Resize the cropped square frame to a specific side length (e.g., 100px)
+                    square_resized = cv2.resize(cropped_frame, (self.canvas_side, self.canvas_side))  # Resize to 100x100 pixels
 
-                self.frame_timestamp += 1
-                mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=square_resized)
-                try:
+                    self.frame_timestamp += 1
+                    mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=square_resized)
                     landmarker.detect_async(mp_image, self.frame_timestamp)
-                except Exception as e:
-                    print(f"ERROR: {e}")
-                    stack_trace = traceback.format_exc()
-                    print("Stack trace:\n" + stack_trace)
+                    print(f"Points sent: {self.frame_timestamp}")
+        except Exception as e:
+            print(f"ERROR: {e}")
+            stack_trace = traceback.format_exc()
+            print("Stack trace:\n" + stack_trace)
         self.cap.release()
         
     def _process_image(self, result: PoseLandmarkerResult, output_image: mp.Image, timestamp_ms: int):
