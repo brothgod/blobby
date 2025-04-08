@@ -17,8 +17,8 @@ class WebcamController:
         self.webcams = [Webcam(webcam_stream = stream, level=level, index=index, ws_address=ws_address) for index, stream in enumerate(webcam_list)]
 
         for webcam in self.webcams:
-            # Process(target=webcam.generate_blobs, daemon=True).start()
-            webcam.generate_blobs()
+            Process(target=webcam.generate_blobs, daemon=True).start()
+            # webcam.generate_blobs()
 
 if __name__ == '__main__':
     with open("constants.json", "r") as file:
