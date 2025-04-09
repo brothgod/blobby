@@ -33,6 +33,7 @@
 
 - Fix jittering!!
 - Add a benchmark for FPS
+- Add a way to test blobbing
 - Fix issue where detect_async gets overwhelmed with frames (switch to image mode?)
 - Add more patterns + number options to switch it
 - Look into if Worker model is actually necessary
