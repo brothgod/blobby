@@ -28,3 +28,11 @@
 - Changed json to yaml
 - Tested with two webcams, it worked!!
 - Alternated canvases
+
+### TODO:
+
+- Fix jittering!!
+- Add a benchmark for FPS
+- Fix issue where detect_async gets overwhelmed with frames (switch to image mode?)
+- Add more patterns + number options to switch it
+- Look into if Worker model is actually necessary
