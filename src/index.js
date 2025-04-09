@@ -122,5 +122,5 @@ document.addEventListener("keyup", (event) => {
       break;
   }
 
-  updateRowCols(Math.max(newRows, 1), Math.max(newCols, 1));
+  updateRowCols(Math.max(newRows, 1), Math.max(newCols, numWebcams));
 });
