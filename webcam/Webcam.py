@@ -21,6 +21,7 @@ class Webcam:
         self.webcam_stream = webcam_stream
         self.current_mask = None
         self.ws_address = ws_address
+        self.ws = None
         self.options = PoseLandmarkerOptions(
             base_options=BaseOptions(model_asset_path=f'webcam/pose_landmarker_{level}.task'),
             running_mode=VisionRunningMode.LIVE_STREAM,
@@ -121,29 +122,52 @@ class Webcam:
 
         # Find the largest contour based on area
         contour = max(contours, key=cv2.contourArea)
+        if(not self.ws):
+            contour_image = fg_image.copy()
+            cv2.drawContours(contour_image, [contour], -1, (59, 192, 169), thickness=2)  # Green
+            cv2.imshow(f"Contour", contour_image)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                return
+            
         convexity_factor = .01
         # Approximate the convex hull polygon (smooths edges)
         epsilon = convexity_factor * cv2.arcLength(contour, True)
         approx_hull = cv2.approxPolyDP(contour, epsilon, True)
         curve_points = None
 
-        if len(approx_hull) > 2:  # At least 3 points for a curve
-            points = approx_hull.reshape(-1, 2)
-            x = points[:, 0]
-            y = points[:, 1]
-            
-            # Fit cubic spline to the points
-            spline_x = CubicSpline(np.arange(len(x)), x, bc_type='natural')
-            spline_y = CubicSpline(np.arange(len(y)), y, bc_type='natural')
-            
-            # Generate smoothed points along the spline
-            smooth_points = np.linspace(0, len(x)-1, num=100)
-            smooth_x = spline_x(smooth_points).astype(np.int32)
-            smooth_y = spline_y(smooth_points).astype(np.int32)
-            
-            # Draw the smooth curve
-            curve_points = np.vstack((smooth_x, smooth_y)).T
-            cv2.polylines(bg_image, [curve_points], isClosed=True, color=(255, 255, 255), thickness=2)
+        if(not self.ws):
+            approx_hull_image = fg_image.copy()
+            cv2.drawContours(approx_hull_image, [approx_hull], -1, (189, 175, 255), thickness=2)  # Pink
+            cv2.imshow(f"Approximate Polygon", approx_hull_image)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                return
+
+        if len(approx_hull) <= 2:  # At least 3 points for a curve
+            return None, None, None
+
+
+        points = approx_hull.reshape(-1, 2)
+        points = np.vstack([points, points[0]])  # Add first point to end
+        x = points[:, 0]
+        y = points[:, 1]
+
+        # Fit cubic spline to the points
+        spline_x = CubicSpline(np.arange(len(x)), x, bc_type='natural')
+        spline_y = CubicSpline(np.arange(len(y)), y, bc_type='natural')
+        
+        # Generate smoothed points along the spline
+        smooth_points = np.linspace(0, len(x)-1, num=100)
+        smooth_x = spline_x(smooth_points).astype(np.int32)
+        smooth_y = spline_y(smooth_points).astype(np.int32)
+        
+        # Draw the smooth curve
+        curve_points = np.vstack((smooth_x, smooth_y)).T
+        cv2.polylines(fg_image, [curve_points], isClosed=True, color=(22, 22, 22), thickness=2) #Gray/Black
+
+        if(not self.ws):
+            cv2.imshow(f"Cubic Splines", fg_image)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                return
 
         # return self.index, bg_image, curve_points  # Return image with contours drawn
         self._send_blob(self.index, bg_image, curve_points, width, height)  # Return image with contours drawn)
