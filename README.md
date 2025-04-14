@@ -37,3 +37,4 @@
 - Fix issue where detect_async gets overwhelmed with frames (switch to image mode?)
 - Add more patterns + number options to switch it
 - Look into if Worker model is actually necessary
+- Add a way to test the blobificatino function
