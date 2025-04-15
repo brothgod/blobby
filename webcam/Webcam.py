@@ -1,4 +1,5 @@
 import json
+import os
 import traceback
 import cv2
 import mediapipe as mp
@@ -35,9 +36,7 @@ class Webcam:
         )
         self.frame_timestamp = 0
         self.index = index
-
-    def __init__():
-        return
+        self.ws = None
 
     def _connect_to_websocket(self):
         self.ws = websocket.WebSocket()
@@ -93,8 +92,6 @@ class Webcam:
                     mp_image = mp.Image(
                         image_format=mp.ImageFormat.SRGB, data=cropped_frame_rgb
                     )
-                    # threading.Event()
-                    # asyncio.run(landmarker.detect_async(mp_image, self.frame_timestamp))
                     landmarker.detect_async(mp_image, self.frame_timestamp)
                     # print(f"Loop over: {self.frame_timestamp}")
                     self.frame_timestamp += 1
@@ -106,7 +103,11 @@ class Webcam:
         self.cap.release()
 
     def _process_image(
-        self, result: PoseLandmarkerResult, output_image: mp.Image, timestamp_ms: int
+        self,
+        result: PoseLandmarkerResult,
+        output_image: mp.Image,
+        timestamp_ms: int,
+        test_folder: str,
     ):
         """Applies segmentation mask overlay."""
         # print(f"Started image processing: {self.frame_timestamp}")
@@ -143,37 +144,82 @@ class Webcam:
 
         # Find the largest contour based on area
         contour = max(contours, key=cv2.contourArea)
+        contour_image = fg_image.copy()
+        if test_folder:
+            cv2.drawContours(
+                contour_image, [contour], -1, (59, 192, 169), thickness=2
+            )  # Green
+            # cv2.imwrite(f"{test_folder}/contour{timestamp_ms}.png",contour_image,)
+
         convexity_factor = 0.01
         # Approximate the convex hull polygon (smooths edges)
         epsilon = convexity_factor * cv2.arcLength(contour, True)
         approx_hull = cv2.approxPolyDP(contour, epsilon, True)
         curve_points = None
+        approx_hull_image = fg_image.copy()
+        if test_folder:
+            cv2.drawContours(
+                approx_hull_image, [approx_hull], -1, (189, 175, 255), thickness=2
+            )  # Pink
+            # cv2.imwrite(f"{test_folder}/approx_hull{timestamp_ms}.png",approx_hull_image,)
 
-        if len(approx_hull) > 2:  # At least 3 points for a curve
-            points = approx_hull.reshape(-1, 2)
-            x = points[:, 0]
-            y = points[:, 1]
+        if len(approx_hull) <= 2:  # At least 3 points for a curve
+            return None, None, None
 
-            # Fit cubic spline to the points
-            spline_x = CubicSpline(np.arange(len(x)), x, bc_type="natural")
-            spline_y = CubicSpline(np.arange(len(y)), y, bc_type="natural")
+        points = approx_hull.reshape(-1, 2)
+        points = np.vstack([points, points[0]])
+        x = points[:, 0]
+        y = points[:, 1]
 
-            # Generate smoothed points along the spline
-            smooth_points = np.linspace(0, len(x) - 1, num=100)
-            smooth_x = spline_x(smooth_points).astype(np.int32)
-            smooth_y = spline_y(smooth_points).astype(np.int32)
+        # Fit cubic spline to the points
+        spline_x = CubicSpline(np.arange(len(x)), x, bc_type="natural")
+        spline_y = CubicSpline(np.arange(len(y)), y, bc_type="natural")
 
-            # Draw the smooth curve
-            curve_points = np.vstack((smooth_x, smooth_y)).T
-            cv2.polylines(
-                bg_image,
-                [curve_points],
-                isClosed=True,
-                color=(255, 255, 255),
-                thickness=2,
-            )
+        # Generate smoothed points along the spline
+        smooth_points = np.linspace(0, len(x) - 1, num=100)
+        smooth_x = spline_x(smooth_points).astype(np.int32)
+        smooth_y = spline_y(smooth_points).astype(np.int32)
 
-        # return self.index, bg_image, curve_points  # Return image with contours drawn
+        # Draw the smooth curve
+        curve_points = np.vstack((smooth_x, smooth_y)).T
+        cv2.polylines(
+            fg_image, [curve_points], isClosed=True, color=(22, 22, 22), thickness=2
+        )  # Gray/Black
+
+        if test_folder:
+            # cv2.imwrite(f"{test_folder}/cubic_spline{timestamp_ms}.png", fg_image)
+            combined = np.hstack((contour_image, approx_hull_image, fg_image))
+            cv2.imwrite(f"{test_folder}/combined{timestamp_ms}.png", combined)
+
         self._send_blob(
             self.index, bg_image, curve_points, width, height
-        )  # Return image with contours drawn)
+        )  # Return image with contours drawn
+
+    def test_blobbify(self, level: str, input_folder, output_folder: str):
+        options = PoseLandmarkerOptions(
+            base_options=BaseOptions(
+                model_asset_path=f"webcam/pose_landmarker_{level}.task"
+            ),
+            running_mode=VisionRunningMode.IMAGE,
+            output_segmentation_masks=True,
+        )
+
+        with PoseLandmarker.create_from_options(options) as landmarker:
+            for filename in os.listdir(input_folder):
+                if filename.endswith(".png"):
+                    print(f"Processing {filename}...")
+                    file_path = f"{input_folder}/{filename}"
+                    img = mp.Image.create_from_file(file_path)
+                    results = landmarker.detect(img)
+                    self._process_image(results, img, int(file_path[-5]), output_folder)
+
+
+if __name__ == "__main__":
+    level = "heavy"
+    input_folder = "webcam/test/input_images"
+    output_folder = "webcam/test/output_images/test_heavy"
+    os.makedirs(output_folder, exist_ok=True)
+    test_webcam = Webcam(None, None, None, None)
+    test_webcam.test_blobbify(
+        level=level, input_folder=input_folder, output_folder=output_folder
+    )
