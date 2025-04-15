@@ -29,15 +29,15 @@ class Webcam:
             base_options=BaseOptions(
                 model_asset_path=f"webcam/pose_landmarker_{level}.task"
             ),
-            running_mode=VisionRunningMode.LIVE_STREAM,
+            running_mode=VisionRunningMode.IMAGE,
             output_segmentation_masks=True,
-            result_callback=self._process_image,
+            # result_callback=self._process_image
         )
         self.frame_timestamp = 0
         self.index = index
 
-    def __init__():
-        return
+    # def __init__(self):
+    #     return
 
     def _connect_to_websocket(self):
         self.ws = websocket.WebSocket()
@@ -93,9 +93,9 @@ class Webcam:
                     mp_image = mp.Image(
                         image_format=mp.ImageFormat.SRGB, data=cropped_frame_rgb
                     )
-                    # threading.Event()
-                    # asyncio.run(landmarker.detect_async(mp_image, self.frame_timestamp))
-                    landmarker.detect_async(mp_image, self.frame_timestamp)
+                    # landmarker.detect_async(mp_image, self.frame_timestamp)
+                    result = landmarker.detect(mp_image)
+                    self._process_image(result, mp_image, self.frame_timestamp)
                     # print(f"Loop over: {self.frame_timestamp}")
                     self.frame_timestamp += 1
 
@@ -109,11 +109,15 @@ class Webcam:
         self, result: PoseLandmarkerResult, output_image: mp.Image, timestamp_ms: int
     ):
         """Applies segmentation mask overlay."""
-        # print(f"Started image processing: {self.frame_timestamp}")
         if result is None or result.segmentation_masks is None:
             return None, None, None
 
         segmentation_mask = result.segmentation_masks[0].numpy_view()
+        # Convert RGB to BGR (since OpenCV uses BGR)
+        bgr_image = cv2.cvtColor(segmentation_mask, cv2.COLOR_RGB2BGR)
+        # Save to file
+        cv2.imwrite(f"seg_mask{timestamp_ms}.png", bgr_image)
+        return
         width = output_image.width
         height = output_image.height
 
@@ -173,7 +177,6 @@ class Webcam:
                 thickness=2,
             )
 
-        # return self.index, bg_image, curve_points  # Return image with contours drawn
         self._send_blob(
             self.index, bg_image, curve_points, width, height
         )  # Return image with contours drawn)

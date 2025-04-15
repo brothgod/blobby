@@ -29,8 +29,8 @@ class WebcamController:
         ]
 
         for webcam in self.webcams:
-            Process(target=webcam.generate_blobs, daemon=True).start()
-            # webcam.generate_blobs()
+            # Process(target=webcam.generate_blobs, daemon=True).start()
+            webcam.generate_blobs()
 
 
 if __name__ == "__main__":
