@@ -1,7 +1,7 @@
 import express from "express";
 import http from "http";
 import WebSocket, { WebSocketServer } from "ws";
-import constants from "../constants.json" with {type: "json"};
+import constants from "../config.json" with {type: "json"};
 
 const app = express();
 const server = http.createServer(app);

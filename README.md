@@ -9,25 +9,33 @@
 2.  `node src/server.js`
 3.  `python webcam/WebcamController.py`
 
-### Week 7
+### Week 7 (3/5-3/12)
 
 - Added websocket control
 - Websocket middleman relays blob points from Python script to website, which displays it
 - Multiple webcams
 - Filled in shape
 
-### Week 8/9
+### Week 8/9 (3/12-3/4/2)
 
 - Added multiple canvases
 - Added "master" canvas and worker model
 - Added constants.yaml
 
-### Week 10
+### Week 10 (4/2-4/9)
 
 - Changed threading to multiprocessing
-- Changed json to yaml
+- Changed yaml to json
+- Added start script
 - Tested with two webcams, it worked!!
 - Alternated canvases
+- Added canvas patterns
+- Added latest canvas behavior to webworker
+
+### Week 11 (4/9 - 4/16)
+
+- Added open visual testing
+- Added test functionalities
 
 ### TODO:
 

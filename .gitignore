@@ -32,3 +32,4 @@ node_modules/
 /.cache
 
 __pycache__
+.python-version

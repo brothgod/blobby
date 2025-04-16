@@ -1,4 +1,4 @@
-import constants from "../constants.json";
+import constants from "../config.json";
 import { generateTilePattern, buildCanvasGrid } from "./canvasPattern.ts";
 
 const numWebcams = constants["NUM_WEBCAMS"];
@@ -57,7 +57,8 @@ const workers = offscreenCanvases.map((offscreenCanvas, index) => {
   return worker;
 });
 
-const colors = ["#ff005a", "#ff8818", "#6cbb00"];
+// const colors = ["#ff005a", "#ff8818", "#6cbb00"];
+const colors = ["#000000", "#000000", "#000000"];
 function sendToWorker(data, index) {
   const worker = workers[index];
   const workerStatus = workerStatuses[index];

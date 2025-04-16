@@ -34,7 +34,7 @@ class WebcamController:
 
 
 if __name__ == "__main__":
-    with open("constants.json", "r") as file:
+    with open("config.json", "r") as file:
         constants = json.load(file)
 
     webcam_list = [str(x) for x in range(constants["NUM_WEBCAMS"])]
