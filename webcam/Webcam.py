@@ -107,7 +107,7 @@ class Webcam:
         result: PoseLandmarkerResult,
         output_image: mp.Image,
         timestamp_ms: int,
-        test_folder: str,
+        test_folder: str = None,
     ):
         """Applies segmentation mask overlay."""
         # print(f"Started image processing: {self.frame_timestamp}")

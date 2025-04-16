@@ -1,5 +1,4 @@
 mediapipe
 numpy
-opencv
-time
+opencv-python   
 websocket-client

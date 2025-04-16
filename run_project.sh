@@ -8,7 +8,7 @@ npm run build
 # Start background processes and track their PIDs
 npm run dev & DEV_PID=$!
 node src/server.js & NODE_PID=$!
-python webcam/WebcamController.py & WEBCAM_PID=$!
+python3 webcam/WebcamController.py & WEBCAM_PID=$!
 
 # Function to handle termination (Ctrl+C or script exit)
 cleanup() {
