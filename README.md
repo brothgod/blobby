@@ -30,10 +30,11 @@
 - Tested with two webcams, it worked!!
 - Alternated canvases
 - Added canvas patterns
-- Added latest canvas behavior to webworker
 
 ### Week 11 (4/9 - 4/16)
 
+- Added latest canvas behavior to webworker
+- Testing image mode
 - Added open visual testing
 - Added test functionalities
 
